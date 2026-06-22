@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "title": "First Steps",
+    "description": "Open your first treasure chest.",
+    "type": "chest",
+    "target": 1,
+    "reward": { "gold": 20, "exp": 15 },
+    "completed": false,
+    "current": 0
+  },
+  {
+    "id": 2,
+    "title": "Monster Hunter",
+    "description": "Defeat 5 monsters.",
+    "type": "kill",
+    "target": 5,
+    "reward": { "gold": 50, "exp": 30 },
+    "completed": false,
+    "current": 0
+  },
+  {
+    "id": 3,
+    "title": "Gacha Addict",
+    "description": "Open 3 treasure chests.",
+    "type": "chest",
+    "target": 3,
+    "reward": { "gold": 100, "exp": 50, "item": { "id": 2, "name": "Hi-Potion", "type": "heal", "value": 80 } },
+    "completed": false,
+    "current": 0
+  },
+  {
+    "id": 4,
+    "title": "Forest Explorer",
+    "description": "Reach the Dark Forest.",
+    "type": "map",
+    "target": "forest",
+    "reward": { "gold": 30, "exp": 20 },
+    "completed": false,
+    "current": 0
+  },
+  {
+    "id": 5,
+    "title": "Boss Slayer",
+    "description": "Defeat the Forest Guardian.",
+    "type": "boss",
+    "target": 10,
+    "reward": { "gold": 200, "exp": 150, "item": { "id": 2, "name": "Hi-Potion", "type": "heal", "value": 80 } },
+    "completed": false,
+    "current": 0
+  },
+  {
+    "id": 6,
+    "title": "Legendary Collector",
+    "description": "Obtain a Legendary weapon.",
+    "type": "weapon_rarity",
+    "target": "Legendary",
+    "reward": { "gold": 500, "exp": 300 },
+    "completed": false,
+    "current": 0
+  },
+  {
+    "id": 7,
+    "title": "Wealthy Adventurer",
+    "description": "Accumulate 500 gold.",
+    "type": "gold",
+    "target": 500,
+    "reward": { "exp": 100 },
+    "completed": false,
+    "current": 0
+  },
+  {
+    "id": 8,
+    "title": "Cave Explorer",
+    "description": "Reach the Shadow Cave.",
+    "type": "map",
+    "target": "cave",
+    "reward": { "gold": 100, "exp": 80 },
+    "completed": false,
+    "current": 0
+  }
+]

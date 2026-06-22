@@ -1,6 +1,7 @@
 'use client'
 import { useGameStore } from '@/store/gameStore'
 import { useState, useEffect } from 'react'
+import { SoundSystem } from '@/game/systems/SoundSystem'
 
 const RARITY_COLORS: Record<string, string> = {
   Common: 'from-gray-600 to-gray-700 border-gray-400 text-gray-200',
@@ -23,17 +24,18 @@ const RARITY_SHADOW: Record<string, string> = {
   Legendary: '0 0 40px rgba(250,204,21,0.7)',
 }
 
-const SKILL_ICONS: Record<string, string> = {
-  physical: '⚔️',
-  magic: '✨',
-  heal: '💚',
-  buff: '🛡️',
+const RARITY_BG: Record<string, string> = {
+  Common: '',
+  Rare: 'from-blue-900/30',
+  Epic: 'from-purple-900/30',
+  Legendary: 'from-yellow-900/50',
 }
 
 export default function GachaPopup() {
-  const { gachaResult, closeGacha, addWeapon, equipWeapon, inventory } = useGameStore()
+  const { gachaResult, closeGacha, addWeapon, equipWeapon, inventory, soundEnabled } = useGameStore()
   const [phase, setPhase] = useState<'rolling' | 'reveal' | 'done'>('rolling')
   const [rollText, setRollText] = useState('')
+  const [particles, setParticles] = useState<{ x: number; y: number; delay: number }[]>([])
 
   useEffect(() => {
     if (!gachaResult) return
@@ -44,32 +46,65 @@ export default function GachaPopup() {
       setRollText(texts[idx % texts.length])
       idx++
     }, 400)
+
+    // Generate particles for legendary
+    if (gachaResult.rarity === 'Legendary') {
+      const newParticles = Array.from({ length: 30 }).map(() => ({
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        delay: Math.random() * 2,
+      }))
+      setParticles(newParticles)
+    }
+
     const timeout = setTimeout(() => {
       clearInterval(interval)
       setPhase('reveal')
+      if (soundEnabled) {
+        if (gachaResult.rarity === 'Legendary') SoundSystem.play('gacha_legendary')
+        else SoundSystem.play('gacha')
+      }
     }, 2000)
     return () => { clearInterval(interval); clearTimeout(timeout) }
-  }, [gachaResult])
+  }, [gachaResult, soundEnabled])
 
   if (!gachaResult) return null
-
-  const isNew = !inventory.find(w => w.id === gachaResult.id)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="relative max-w-sm w-full mx-4">
         {/* Glow background */}
-        <div
-          className="absolute inset-0 rounded-2xl opacity-30 blur-xl"
-          style={{ background: gachaResult.rarity === 'Legendary' ? '#facc15' : gachaResult.rarity === 'Epic' ? '#a855f7' : '#3b82f6' }}
-        />
+        {gachaResult.rarity !== 'Common' && (
+          <div
+            className="absolute inset-0 rounded-2xl opacity-30 blur-xl"
+            style={{ background: gachaResult.rarity === 'Legendary' ? '#facc15' : gachaResult.rarity === 'Epic' ? '#a855f7' : '#3b82f6' }}
+          />
+        )}
+
+        {/* Legendary particles */}
+        {gachaResult.rarity === 'Legendary' && phase === 'reveal' && (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {particles.map((p, i) => (
+              <div
+                key={i}
+                className="absolute w-1 h-1 bg-yellow-400 rounded-full animate-ping"
+                style={{
+                  left: `${p.x}%`,
+                  top: `${p.y}%`,
+                  animationDelay: `${p.delay}s`,
+                  animationDuration: '1.5s',
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         <div className={`relative bg-gradient-to-b ${RARITY_COLORS[gachaResult.rarity]} border-2 rounded-2xl p-6 text-center`}
           style={{ boxShadow: RARITY_SHADOW[gachaResult.rarity] }}>
 
           {phase === 'rolling' ? (
             <div className="py-8">
-              <div className="text-4xl animate-spin mb-4">🎁</div>
+              <div className="text-5xl animate-spin mb-4">🎁</div>
               <p className="font-pixel text-sm text-white animate-pulse">{rollText}</p>
             </div>
           ) : (
@@ -80,9 +115,14 @@ export default function GachaPopup() {
                   <p className="font-pixel text-xs text-yellow-300 tracking-widest">★ ★ ★ ★</p>
                 </div>
               )}
+              {gachaResult.rarity === 'Epic' && (
+                <div className="mb-2">
+                  <p className="font-pixel text-[10px] text-purple-300 tracking-widest">★ ★ ★</p>
+                </div>
+              )}
 
               {/* Weapon icon */}
-              <div className="text-5xl mb-3">
+              <div className={`text-5xl mb-3 ${phase === 'reveal' ? 'animate-bounce' : ''}`}>
                 {gachaResult.rarity === 'Legendary' ? '⚔️' :
                   gachaResult.rarity === 'Epic' ? '🗡️' :
                     gachaResult.rarity === 'Rare' ? '🔪' : '🗡️'}
@@ -101,7 +141,7 @@ export default function GachaPopup() {
                 <div className="space-y-1">
                   {gachaResult.skills.map((skill: any, i: number) => (
                     <p key={i} className="font-pixel text-[9px] text-gray-300">
-                      {SKILL_ICONS[skill.type]} {skill.name} — {skill.type === 'heal' ? `Heal ${Math.abs(skill.damage)}` : `${skill.damage} DMG`}
+                      {skill.type === 'physical' ? '⚔️' : skill.type === 'magic' ? '✨' : skill.type === 'heal' ? '💚' : '🛡️'} {skill.name} — {skill.type === 'heal' ? `Heal ${Math.abs(skill.damage)}` : skill.type === 'buff' ? 'Buff' : `${skill.damage} DMG`}
                       {skill.mpCost > 0 && <span className="text-cyan-300"> ({skill.mpCost} MP)</span>}
                     </p>
                   ))}
@@ -111,13 +151,13 @@ export default function GachaPopup() {
               {/* Buttons */}
               <div className="flex gap-3">
                 <button
-                  onClick={() => { addWeapon(gachaResult); equipWeapon(gachaResult); closeGacha() }}
+                  onClick={() => { addWeapon(gachaResult); equipWeapon(gachaResult); closeGacha(); if (soundEnabled) SoundSystem.play('menu_click') }}
                   className="flex-1 font-pixel text-xs bg-green-700 hover:bg-green-600 text-white py-2 px-3 rounded-lg border border-green-500 transition-colors"
                 >
                   ⚔️ Equip
                 </button>
                 <button
-                  onClick={() => { addWeapon(gachaResult); closeGacha() }}
+                  onClick={() => { addWeapon(gachaResult); closeGacha(); if (soundEnabled) SoundSystem.play('menu_click') }}
                   className="flex-1 font-pixel text-xs bg-gray-700 hover:bg-gray-600 text-white py-2 px-3 rounded-lg border border-gray-500 transition-colors"
                 >
                   📦 Keep

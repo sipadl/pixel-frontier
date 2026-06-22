@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { SoundSystem } from '@/game/systems/SoundSystem'
 
 export interface Weapon {
   id: number
@@ -27,6 +28,17 @@ export interface Item {
   type: string
   value: number
   quantity: number
+}
+
+export interface Quest {
+  id: number
+  title: string
+  description: string
+  type: string
+  target: any
+  reward: { gold?: number; exp?: number; item?: any }
+  completed: boolean
+  current: number
 }
 
 export interface GameState {
@@ -59,6 +71,12 @@ export interface GameState {
   battleLog: string[]
   isPlayerTurn: boolean
   battleWon: boolean
+  monstersKilled: number
+
+  // Quest
+  quests: Quest[]
+  showQuests: boolean
+  questNotification: string | null
 
   // UI
   screen: 'menu' | 'game' | 'battle' | 'gameover'
@@ -71,6 +89,7 @@ export interface GameState {
   gachaResult: Weapon | null
   shakeScreen: boolean
   damageNumbers: { id: number; value: number; x: number; y: number; type: string }[]
+  soundEnabled: boolean
 
   // Actions
   setPlayerName: (name: string) => void
@@ -92,6 +111,7 @@ export interface GameState {
   removeItem: (itemId: number) => void
   toggleInventory: () => void
   toggleShop: () => void
+  toggleQuests: () => void
   openGacha: (result: Weapon) => void
   closeGacha: () => void
   openDialogue: (name: string, text: string) => void
@@ -106,6 +126,8 @@ export interface GameState {
   loadGame: () => boolean
   saveGame: () => void
   levelUp: () => void
+  updateQuest: (type: string, value: any) => void
+  toggleSound: () => void
 }
 
 const defaultState = {
@@ -134,6 +156,10 @@ const defaultState = {
   battleLog: [] as string[],
   isPlayerTurn: true,
   battleWon: false,
+  monstersKilled: 0,
+  quests: [] as Quest[],
+  showQuests: false,
+  questNotification: null as string | null,
   screen: 'menu' as 'menu' | 'game' | 'battle' | 'gameover',
   showInventory: false,
   showGacha: false,
@@ -144,9 +170,11 @@ const defaultState = {
   gachaResult: null as Weapon | null,
   shakeScreen: false,
   damageNumbers: [] as { id: number; value: number; x: number; y: number; type: string }[],
+  soundEnabled: true,
 }
 
 let dmgId = 0
+let questNotifTimer: NodeJS.Timeout | null = null
 
 export const useGameStore = create<GameState>((set, get) => ({
   ...defaultState,
@@ -155,10 +183,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   setScreen: (screen) => set({ screen }),
   setPlayerPos: (x, y) => set({ playerPos: { x, y } }),
   setFacing: (dir) => set({ facing: dir }),
-  setCurrentMap: (map) => set({ currentMap: map }),
+  setCurrentMap: (map) => {
+    set({ currentMap: map })
+    get().updateQuest('map', map)
+    get().saveGame()
+  },
 
   startBattle: (monster) => {
-    const state = get()
     const cloned = { ...monster, hp: monster.hp, maxHp: monster.hp }
     set({
       inBattle: true,
@@ -168,6 +199,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       battleWon: false,
       screen: 'battle',
     })
+    if (get().soundEnabled) {
+      SoundSystem.play(cloned.boss ? 'boss' : 'hit')
+    }
   },
 
   endBattle: (won) => {
@@ -175,12 +209,24 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (won && state.currentMonster) {
       const expGain = state.currentMonster.exp
       const goldGain = state.currentMonster.gold
-      set({ inBattle: false, currentMonster: null, battleWon: true, screen: 'game' })
+      set({
+        inBattle: false,
+        currentMonster: null,
+        battleWon: true,
+        screen: 'game',
+        monstersKilled: state.monstersKilled + 1,
+      })
       get().gainExp(expGain)
       get().gainGold(goldGain)
+      get().updateQuest('kill', state.monstersKilled + 1)
+      if (state.currentMonster.boss) {
+        get().updateQuest('boss', state.currentMonster.id)
+      }
+      if (state.soundEnabled) SoundSystem.play('victory')
       get().saveGame()
     } else {
       set({ inBattle: false, currentMonster: null, battleWon: false, screen: 'gameover' })
+      if (state.soundEnabled) SoundSystem.play('defeat')
     }
   },
 
@@ -197,6 +243,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       battleLog: [...state.battleLog, `You dealt ${damage} damage!`],
     })
     get().addDamageNumber(damage, 600, 150, 'physical')
+    if (state.soundEnabled) SoundSystem.play('attack')
     if (newHp <= 0) {
       get().addBattleLog(`${state.currentMonster.name} defeated!`)
       setTimeout(() => get().endBattle(true), 1000)
@@ -213,6 +260,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const skill = weapon.skills[skillIndex]
     if (state.mp < skill.mpCost) {
       get().addBattleLog('Not enough MP!')
+      if (state.soundEnabled) SoundSystem.play('error')
       return
     }
     const baseAtk = state.atk + weapon.atk
@@ -223,6 +271,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ mp: state.mp - skill.mpCost, hp: newHp })
       get().addBattleLog(`Used ${skill.name}! Healed ${healAmount} HP!`)
       get().addDamageNumber(-healAmount, 200, 150, 'heal')
+      if (state.soundEnabled) SoundSystem.play('heal')
       setTimeout(() => set({ isPlayerTurn: false }), 400)
       setTimeout(() => get().monsterTurn(), 1200)
       return
@@ -230,6 +279,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (skill.type === 'buff') {
       set({ mp: state.mp - skill.mpCost })
       get().addBattleLog(`Used ${skill.name}! Power up!`)
+      if (state.soundEnabled) SoundSystem.play('skill')
       setTimeout(() => set({ isPlayerTurn: false }), 400)
       setTimeout(() => get().monsterTurn(), 1200)
       return
@@ -243,6 +293,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       battleLog: [...state.battleLog, `Used ${skill.name}! ${damage} damage!`],
     })
     get().addDamageNumber(damage, 600, 150, skill.type)
+    if (state.soundEnabled) SoundSystem.play('skill')
     if (newHp <= 0) {
       get().addBattleLog(`${state.currentMonster.name} defeated!`)
       setTimeout(() => get().endBattle(true), 1000)
@@ -268,6 +319,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ mp: state.mp + heal, items: newItems })
       get().addBattleLog(`Used ${item.name}! Restored ${heal} MP!`)
     }
+    if (state.soundEnabled) SoundSystem.play('heal')
     setTimeout(() => set({ isPlayerTurn: false }), 400)
     setTimeout(() => get().monsterTurn(), 1200)
   },
@@ -276,11 +328,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get()
     if (state.currentMonster?.boss) {
       get().addBattleLog("Can't flee from a boss!")
+      if (state.soundEnabled) SoundSystem.play('error')
       return
     }
     const chance = 0.5 + (state.level * 0.05)
     if (Math.random() < chance) {
       get().addBattleLog('Fled successfully!')
+      if (state.soundEnabled) SoundSystem.play('escape')
       setTimeout(() => {
         set({ inBattle: false, currentMonster: null, screen: 'game' })
         get().saveGame()
@@ -307,6 +361,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     })
     get().addDamageNumber(damage, 200, 300, 'physical')
     get().setShake(true)
+    if (state.soundEnabled) SoundSystem.play('hit')
     setTimeout(() => get().setShake(false), 300)
     if (newHp <= 0) {
       get().addBattleLog('You were defeated...')
@@ -316,11 +371,16 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   addBattleLog: (msg) => set(s => ({ battleLog: [...s.battleLog, msg] })),
 
-  equipWeapon: (weapon) => set({ equippedWeapon: weapon }),
+  equipWeapon: (weapon) => {
+    set({ equippedWeapon: weapon })
+    get().saveGame()
+  },
 
-  addWeapon: (weapon) => set(s => ({
-    inventory: [...s.inventory, weapon]
-  })),
+  addWeapon: (weapon) => {
+    set(s => ({ inventory: [...s.inventory, weapon] }))
+    get().updateQuest('weapon_rarity', weapon.rarity)
+    get().saveGame()
+  },
 
   addItem: (item) => set(s => {
     const existing = s.items.find(i => i.id === item.id)
@@ -336,8 +396,12 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   toggleInventory: () => set(s => ({ showInventory: !s.showInventory })),
   toggleShop: () => set(s => ({ showShop: !s.showShop })),
+  toggleQuests: () => set(s => ({ showQuests: !s.showQuests })),
 
-  openGacha: (result) => set({ showGacha: true, gachaResult: result }),
+  openGacha: (result) => {
+    set({ showGacha: true, gachaResult: result })
+    get().updateQuest('chest', get().quests.find(q => q.type === 'chest')?.current || 0)
+  },
   closeGacha: () => set({ showGacha: false, gachaResult: null }),
 
   openDialogue: (name, text) => set({ showDialogue: true, dialogueName: name, dialogueText: text }),
@@ -352,6 +416,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     let newMaxMp = state.maxMp
     let newAtk = state.atk
     let newDef = state.def
+    let leveled = false
     while (newExp >= newExpToNext) {
       newExp -= newExpToNext
       newLevel++
@@ -360,15 +425,21 @@ export const useGameStore = create<GameState>((set, get) => ({
       newMaxMp += 8
       newAtk += 2
       newDef += 1
+      leveled = true
     }
     set({
       exp: newExp, level: newLevel, expToNext: newExpToNext,
       maxHp: newMaxHp, maxMp: newMaxMp, atk: newAtk, def: newDef,
       hp: newMaxHp, mp: newMaxMp,
     })
+    if (leveled && state.soundEnabled) SoundSystem.play('level_up')
   },
 
-  gainGold: (amount) => set(s => ({ gold: s.gold + amount })),
+  gainGold: (amount) => {
+    set(s => ({ gold: s.gold + amount }))
+    get().updateQuest('gold', get().gold + amount)
+  },
+
   takeDamage: (amount) => set(s => ({ hp: Math.max(0, s.hp - amount) })),
 
   addDamageNumber: (value, x, y, type) => set(s => ({
@@ -388,7 +459,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         { id: 3, name: 'Ether', type: 'mp_heal', value: 20, quantity: 2 },
       ],
     })
-    get().saveGame()
+    // Load quests
+    fetch('/data/quests.json').then(r => r.json()).then(quests => {
+      set({ quests })
+      if (get().soundEnabled) SoundSystem.play('menu_click')
+      get().saveGame()
+    })
   },
 
   loadGame: () => {
@@ -397,6 +473,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (data) {
         const parsed = JSON.parse(data)
         set({ ...parsed, screen: 'game', inBattle: false, currentMonster: null })
+        if (get().soundEnabled) SoundSystem.play('menu_click')
         return true
       }
     } catch (e) {
@@ -425,6 +502,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       currentMap: state.currentMap,
       playerPos: state.playerPos,
       facing: state.facing,
+      monstersKilled: state.monstersKilled,
+      quests: state.quests,
+      soundEnabled: state.soundEnabled,
     }
     try {
       localStorage.setItem('pixel-saga-save', JSON.stringify(saveData))
@@ -445,5 +525,61 @@ export const useGameStore = create<GameState>((set, get) => ({
       hp: state.maxHp + 15,
       mp: state.maxMp + 8,
     })
+  },
+
+  updateQuest: (type, value) => {
+    const state = get()
+    const newQuests = state.quests.map(q => {
+      if (q.completed) return q
+      if (q.type !== type) return q
+
+      let newCurrent = q.current
+      let completed = false
+
+      switch (type) {
+        case 'chest':
+          newCurrent = (value || q.current + 1)
+          if (newCurrent >= q.target) completed = true
+          break
+        case 'kill':
+          newCurrent = value || q.current + 1
+          if (newCurrent >= q.target) completed = true
+          break
+        case 'map':
+          if (value === q.target) { completed = true; newCurrent = 1 }
+          break
+        case 'boss':
+          if (value === q.target) { completed = true; newCurrent = 1 }
+          break
+        case 'weapon_rarity':
+          if (value === q.target) { completed = true; newCurrent = 1 }
+          break
+        case 'gold':
+          newCurrent = value || state.gold
+          if (newCurrent >= q.target) completed = true
+          break
+      }
+
+      if (completed && !q.completed) {
+        // Give rewards
+        if (q.reward.gold) get().gainGold(q.reward.gold)
+        if (q.reward.exp) get().gainExp(q.reward.exp)
+        if (q.reward.item) get().addItem(q.reward.item)
+        // Show notification
+        set({ questNotification: `🏆 Quest Complete: ${q.title}!` })
+        if (questNotifTimer) clearTimeout(questNotifTimer)
+        questNotifTimer = setTimeout(() => set({ questNotification: null }), 3000)
+        if (get().soundEnabled) SoundSystem.play('level_up')
+      }
+
+      return { ...q, current: newCurrent, completed }
+    })
+    set({ quests: newQuests })
+  },
+
+  toggleSound: () => {
+    const enabled = !get().soundEnabled
+    set({ soundEnabled: enabled })
+    if (!enabled) SoundSystem.stopBgm()
   },
 }))

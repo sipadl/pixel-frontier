@@ -8,23 +8,27 @@ import GachaPopup from '@/components/GachaPopup'
 import DialogueBox from '@/components/DialogueBox'
 import GameOver from '@/components/GameOver'
 import MainMenu from '@/components/MainMenu'
-import GameOverScreen from '@/components/GameOver'
+import QuestLog from '@/components/QuestLog'
+import Shop from '@/components/Shop'
 import { useEffect } from 'react'
 
 export default function Home() {
-  const { screen, showInventory, showGacha, showDialogue, inBattle } = useGameStore()
+  const { screen, showInventory, showGacha, showDialogue, showQuests, showShop, inBattle, toggleSound } = useGameStore()
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'i' || e.key === 'I') {
-        useGameStore.getState().toggleInventory()
-      }
+      const s = useGameStore.getState()
+      if (e.key === 'i' || e.key === 'I') s.toggleInventory()
+      if (e.key === 'q' || e.key === 'Q') s.toggleQuests()
+      if (e.key === 'k' || e.key === 'K') s.toggleShop()
+      if (e.key === 'm' || e.key === 'M') s.toggleSound()
       if (e.key === 'Escape') {
-        const s = useGameStore.getState()
         if (s.showInventory) s.toggleInventory()
-        if (s.showGacha) s.closeGacha()
-        if (s.showDialogue) s.closeDialogue()
+        else if (s.showQuests) s.toggleQuests()
+        else if (s.showShop) s.toggleShop()
+        else if (s.showGacha) s.closeGacha()
+        else if (s.showDialogue) s.closeDialogue()
       }
     }
     window.addEventListener('keydown', handleKey)
@@ -32,7 +36,7 @@ export default function Home() {
   }, [])
 
   if (screen === 'menu') return <MainMenu />
-  if (screen === 'gameover') return <GameOverScreen />
+  if (screen === 'gameover') return <GameOver />
 
   return (
     <div className="fixed inset-0 bg-gray-950 overflow-hidden">
@@ -47,6 +51,12 @@ export default function Home() {
 
       {/* Inventory */}
       {showInventory && <Inventory />}
+
+      {/* Quest Log */}
+      {showQuests && <QuestLog />}
+
+      {/* Shop */}
+      {showShop && <Shop />}
 
       {/* Gacha Popup */}
       {showGacha && <GachaPopup />}
