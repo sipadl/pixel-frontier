@@ -1,0 +1,14 @@
+[
+  {"id": 1, "name": "Wooden Sword", "rarity": "Common", "atk": 5, "skills": [{"name": "Slash", "damage": 10, "mpCost": 0, "type": "physical"}]},
+  {"id": 2, "name": "Iron Blade", "rarity": "Common", "atk": 8, "skills": [{"name": "Slash", "damage": 12, "mpCost": 0, "type": "physical"}]},
+  {"id": 3, "name": "Flame Katana", "rarity": "Rare", "atk": 15, "skills": [{"name": "Slash", "damage": 15, "mpCost": 0, "type": "physical"}, {"name": "Fireball", "damage": 25, "mpCost": 8, "type": "magic"}]},
+  {"id": 4, "name": "Frost Bow", "rarity": "Rare", "atk": 12, "skills": [{"name": "Arrow Shot", "damage": 18, "mpCost": 0, "type": "physical"}, {"name": "Ice Storm", "damage": 22, "mpCost": 10, "type": "magic"}]},
+  {"id": 5, "name": "Shadow Blade", "rarity": "Epic", "atk": 22, "skills": [{"name": "Dark Slash", "damage": 20, "mpCost": 5, "type": "physical"}, {"name": "Shadow Strike", "damage": 30, "mpCost": 12, "type": "magic"}, {"name": "Poison Edge", "damage": 18, "mpCost": 8, "type": "physical"}]},
+  {"id": 6, "name": "Holy Staff", "rarity": "Epic", "atk": 10, "skills": [{"name": "Holy Light", "damage": 28, "mpCost": 10, "type": "magic"}, {"name": "Heal", "damage": -20, "mpCost": 12, "type": "heal"}, {"name": "Shield", "damage": 0, "mpCost": 8, "type": "buff"}]},
+  {"id": 7, "name": "Storm Breaker", "rarity": "Legendary", "atk": 30, "skills": [{"name": "Thunder Strike", "damage": 35, "mpCost": 15, "type": "magic"}, {"name": "Lightning Slash", "damage": 28, "mpCost": 10, "type": "physical"}, {"name": "Heal", "damage": -25, "mpCost": 15, "type": "heal"}, {"name": "Barrier", "damage": 0, "mpCost": 10, "type": "buff"}]},
+  {"id": 8, "name": "Dragon Fang", "rarity": "Legendary", "atk": 35, "skills": [{"name": "Dragon Breath", "damage": 40, "mpCost": 20, "type": "magic"}, {"name": "Bite", "damage": 25, "mpCost": 5, "type": "physical"}, {"name": "Fire Storm", "damage": 45, "mpCost": 25, "type": "magic"}, {"name": "Rage", "damage": 0, "mpCost": 0, "type": "buff"}]},
+  {"id": 9, "name": "Crystal Dagger", "rarity": "Rare", "atk": 10, "skills": [{"name": "Quick Stab", "damage": 14, "mpCost": 0, "type": "physical"}, {"name": "Crystal Shard", "damage": 20, "mpCost": 8, "type": "magic"}]},
+  {"id": 10, "name": "Poison Dagger", "rarity": "Common", "atk": 6, "skills": [{"name": "Venom Strike", "damage": 8, "mpCost": 0, "type": "physical"}]},
+  {"id": 11, "name": "Bamboo Staff", "rarity": "Common", "atk": 4, "skills": [{"name": "Staff Hit", "damage": 6, "mpCost": 0, "type": "physical"}]},
+  {"id": 12, "name": "War Hammer", "rarity": "Rare", "atk": 20, "skills": [{"name": "Smash", "damage": 22, "mpCost": 5, "type": "physical"}, {"name": "Earthquake", "damage": 28, "mpCost": 12, "type": "magic"}]}
+]

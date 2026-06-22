@@ -1,36 +1,145 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎮 Pixel Saga
 
-## Getting Started
+> **Browser RPG turn-based pixel game** — Jelajahi peta, lawan monster, kumpulkan senjata legendary!
 
-First, run the development server:
+🔗 **[Mainkan Sekarang!](https://pixel-saga.vercel.app)**
+
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![Tailwind](https://img.shields.io/badge/Tailwind-v4-blue)
+![Zustand](https://img.shields.io/badge/Zustand-State%20Mgmt-orange)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+
+---
+
+## 🎯 Fitur Utama
+
+| Feature | Detail |
+|---------|--------|
+| 🗺️ **3 Maps** | Village → Dark Forest → Shadow Cave |
+| ⚔️ **Turn-Based Battle** | Attack, Skill, Item, Flee |
+| 🎲 **Gacha System** | Common, Rare, Epic, Legendary weapons |
+| 📦 **Inventory** | Equip weapon → ganti skill set |
+| 👾 **6 Monster** | 6 regular + 2 Boss |
+| 💾 **Auto Save** | localStorage |
+| 📱 **Responsive** | Desktop & Mobile |
+
+---
+
+## 🗺️ Maps
+
+| Map | Monsters | Encounter Rate | Boss |
+|-----|----------|----------------|------|
+| 🏘️ Village | Green Slime, Angry Chicken | 8% | — |
+| 🌲 Forest | Wild Wolf, Treant | 15% | Forest Guardian |
+| ⛰️ Cave | Dark Bat, Stone Golem | 20% | Cave King |
+
+---
+
+## ⚔️ Gacha Rarity
+
+| Rarity | Drop Rate | Skill Slots | Example |
+|--------|-----------|-------------|---------|
+| ⬜ Common | 60% | 1 | Wooden Sword |
+| 🟦 Rare | 30% | 2 | Flame Katana |
+| 🟪 Epic | 9% | 3 | Shadow Blade |
+| 🌟 Legendary | 1% | 4 | Storm Breaker |
+
+---
+
+## 🎮 Controls
+
+| Key | Action |
+|-----|--------|
+| WASD / Arrow Keys | Move |
+| E | Interact NPC |
+| I | Open Inventory |
+| ESC | Close Menu |
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS v4
+- **State:** Zustand
+- **Font:** Press Start 2P (Pixel Font)
+- **Deploy:** Vercel
+
+---
+
+## 🚀 Quick Start
 
 ```bash
+git clone https://github.com/sipadl/pixel-saga.git
+cd pixel-saga
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📁 Structure
 
-## Learn More
+```
+pixel-saga/
+├─ app/                    # Next.js pages
+│  ├─ page.tsx             # Main game page
+│  └─ globals.css          # Pixel styles + animations
+├─ components/             # React components
+│  ├─ MainMenu.tsx         # Title screen
+│  ├─ GameMap.tsx           # Tilemap renderer + player movement
+│  ├─ BattleUI.tsx          # Turn-based combat UI
+│  ├─ GachaPopup.tsx        # Weapon gacha animation
+│  ├─ Inventory.tsx         # Weapon list + equip
+│  ├─ HUD.tsx               # HP/MP/EXP bars + stats
+│  ├─ DialogueBox.tsx       # NPC dialogue
+│  └─ GameOver.tsx          # Game over screen
+├─ store/
+│  └─ gameStore.ts          # Zustand state management
+├─ game/
+│  ├─ data/                 # JSON game data
+│  │  ├─ monsters.json
+│  │  ├─ weapons.json
+│  │  ├─ maps.json
+│  │  └─ items.json
+│  └─ systems/
+│     ├─ GameSystems.ts     # Gacha, combat, encounter logic
+│     └─ SaveSystem.ts      # localStorage save/load
+└─ public/assets/           # Sprites, tilesets, audio
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📸 Screenshots
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Main Menu
+![Menu](https://img.shields.io/badge/Press_Start_Game-blue?style=for-the-badge)
 
-## Deploy on Vercel
+### Map Exploration
+- 3 unique tilemap worlds
+- Random encounter system
+- NPC interactions
+- Treasure chests with gacha weapons
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Battle System
+- Turn-based combat
+- Monster skills
+- Weapon skill system
+- HP/MP management
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 👨‍💻 Author
+
+**Fadel Muhammad**
+- GitHub: [@sipadl](https://github.com/sipadl)
+- LinkedIn: [fadelmuhammad](https://linkedin.com/in/fadelmuhammad-7300ab170)
+
+---
+
+## 📄 License
+
+MIT © 2024
