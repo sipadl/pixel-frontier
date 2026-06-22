@@ -2,7 +2,7 @@
 import { useGameStore } from '@/store/gameStore'
 
 export default function StatsPanel() {
-  const { showStats, toggleStats, level, stats, statPoints, skillPoints, equippedWeapon, maxHp, maxMp, gold, monstersKilled } = useGameStore()
+  const { showStats, toggleStats, level, stats, statPoints, skillPoints, equippedWeapon, maxHp, maxMp, gold, kills } = useGameStore()
 
   if (!showStats) return null
 
@@ -126,7 +126,7 @@ export default function StatsPanel() {
               </div>
               <div className="flex justify-between">
                 <span className="font-pixel text-[9px] text-gray-400">👾 Monsters Killed</span>
-                <span className="font-pixel text-[9px] text-red-400">{monstersKilled}</span>
+                <span className="font-pixel text-[9px] text-red-400">{kills}</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-pixel text-[9px] text-gray-400">⚔️ Weapon</span>

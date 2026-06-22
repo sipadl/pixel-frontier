@@ -2,45 +2,38 @@
 import { useGameStore } from '@/store/gameStore'
 
 export default function GameOver() {
-  const { setScreen, loadGame } = useGameStore()
+  const { loadGame, startNewGame } = useGameStore()
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95">
-      {/* Animated blood drip */}
-      <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-red-900/40 to-transparent" />
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-red-950 to-black">
+      {/* Blood splatter effect */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div key={i} className="absolute w-2 h-2 bg-red-900/40 rounded-full"
+            style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }} />
+        ))}
+      </div>
 
-      <div className="text-center">
-        <h1 className="font-pixel text-5xl text-red-500 mb-4 animate-pulse">
+      <div className="relative text-center">
+        <h1 className="font-pixel text-4xl md:text-6xl text-red-500 drop-shadow-[0_0_30px_rgba(239,68,68,0.5)] mb-4 animate-pulse">
           GAME OVER
         </h1>
-        <p className="font-pixel text-sm text-gray-400 mb-8">
-          You have been defeated...
-        </p>
+        <p className="font-pixel text-xs text-gray-400 mb-8">You were defeated by the monsters...</p>
 
         <div className="flex flex-col gap-3 w-56 mx-auto">
           <button
-            onClick={() => {
-              loadGame()
-              setScreen('game')
-            }}
-            className="game-btn"
+            onClick={() => loadGame()}
+            className="font-pixel text-xs bg-green-800 hover:bg-green-700 text-white py-3 px-4 rounded-lg border border-green-500 transition-all hover:scale-105"
           >
             📂 Load Save
           </button>
           <button
-            onClick={() => setScreen('menu')}
-            className="game-btn-secondary"
+            onClick={() => startNewGame()}
+            className="font-pixel text-xs bg-blue-800 hover:bg-blue-700 text-white py-3 px-4 rounded-lg border border-blue-500 transition-all hover:scale-105"
           >
-            🏠 Main Menu
+            🆕 New Game
           </button>
         </div>
-      </div>
-
-      {/* Skull decorations */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-4 opacity-20">
-        <span className="text-3xl">💀</span>
-        <span className="text-3xl">💀</span>
-        <span className="text-3xl">💀</span>
       </div>
     </div>
   )

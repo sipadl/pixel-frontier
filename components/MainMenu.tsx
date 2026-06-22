@@ -1,9 +1,26 @@
 'use client'
 import { useGameStore } from '@/store/gameStore'
+import { useEffect, useState } from 'react'
 
 export default function MainMenu() {
-  const { setScreen, loadGame, initNewGame } = useGameStore()
-  const hasSave = typeof window !== 'undefined' && localStorage.getItem('pixel-saga-save') !== null
+  const { startNewGame, loadGame, startGame } = useGameStore()
+  const [hasSave, setHasSave] = useState(false)
+
+  useEffect(() => {
+    setHasSave(!!localStorage.getItem('pixel-saga-save'))
+  }, [])
+
+  const handleNewGame = () => {
+    startNewGame()
+  }
+
+  const handleLoad = () => {
+    if (loadGame()) {
+      // Game starts
+    } else {
+      alert('No save found!')
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-indigo-950 via-purple-950 to-black flex flex-col items-center justify-center z-50">
@@ -47,7 +64,7 @@ export default function MainMenu() {
       {/* Menu buttons */}
       <div className="flex flex-col gap-4 w-64">
         <button
-          onClick={() => initNewGame()}
+          onClick={handleNewGame}
           className="game-btn text-lg"
         >
           ⚔️ New Game
@@ -55,10 +72,7 @@ export default function MainMenu() {
 
         {hasSave && (
           <button
-            onClick={() => {
-              loadGame()
-              setScreen('game')
-            }}
+            onClick={handleLoad}
             className="game-btn-secondary text-lg"
           >
             📂 Continue
