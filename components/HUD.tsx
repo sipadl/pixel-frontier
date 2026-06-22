@@ -11,8 +11,9 @@ const RARITY_COLORS: Record<string, string> = {
 export default function HUD() {
   const {
     level, hp, maxHp, mp, maxMp, exp, expToNext, gold,
-    currentMap, toggleInventory, toggleShop, toggleQuests,
-    equippedWeapon, questNotification, soundEnabled, toggleSound
+    currentMap, toggleInventory, toggleShop, toggleQuests, toggleStats,
+    equippedWeapon, questNotification, soundEnabled, toggleSound,
+    statPoints, skillPoints
   } = useGameStore()
 
   const hpPercent = Math.max(0, (hp / maxHp) * 100)
@@ -34,7 +35,7 @@ export default function HUD() {
         {/* Left: Player stats */}
         <div className="bg-black/80 backdrop-blur-sm rounded-lg p-3 border border-gray-700 pointer-events-auto min-w-[200px]">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-700 border-2 border-blue-300 rounded-lg flex items-center justify-center text-sm">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-700 border-2 border-blue-300 rounded-lg flex items-center justify-center text-sm cursor-pointer hover:border-yellow-400 transition-colors" onClick={toggleStats}>
               🧙
             </div>
             <div>
@@ -92,6 +93,17 @@ export default function HUD() {
               />
             </div>
           </div>
+
+          {/* Points indicator */}
+          {(statPoints > 0 || skillPoints > 0) && (
+            <div className="mt-2 p-1.5 bg-purple-900/40 border border-purple-600 rounded text-center">
+              <p className="font-pixel text-[8px] text-purple-300">
+                {statPoints > 0 && `⬆ ${statPoints} Stat `}
+                {skillPoints > 0 && `✨ ${skillPoints} Skill `}
+                Points!
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Right: Weapon + Quick Actions */}
@@ -122,17 +134,20 @@ export default function HUD() {
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="flex gap-1 pointer-events-auto">
+          <div className="flex flex-wrap gap-1 pointer-events-auto justify-end">
+            <button onClick={toggleStats} className="px-2 py-1.5 bg-gray-800/90 hover:bg-gray-700 rounded border border-gray-600 transition-colors" title="Stats (C)">
+              <span className="font-pixel text-[8px] text-white">📊</span>
+            </button>
             <button onClick={toggleInventory} className="px-2 py-1.5 bg-gray-800/90 hover:bg-gray-700 rounded border border-gray-600 transition-colors" title="Inventory (I)">
               <span className="font-pixel text-[8px] text-white">📦</span>
             </button>
             <button onClick={toggleQuests} className="px-2 py-1.5 bg-gray-800/90 hover:bg-gray-700 rounded border border-gray-600 transition-colors" title="Quests (Q)">
               <span className="font-pixel text-[8px] text-white">📜</span>
             </button>
-            <button onClick={toggleShop} className="px-2 py-1.5 bg-gray-800/90 hover:bg-gray-700 rounded border border-gray-600 transition-colors" title="Shop">
+            <button onClick={toggleShop} className="px-2 py-1.5 bg-gray-800/90 hover:bg-gray-700 rounded border border-gray-600 transition-colors" title="Shop (K)">
               <span className="font-pixel text-[8px] text-white">🏪</span>
             </button>
-            <button onClick={toggleSound} className="px-2 py-1.5 bg-gray-800/90 hover:bg-gray-700 rounded border border-gray-600 transition-colors" title="Toggle Sound">
+            <button onClick={toggleSound} className="px-2 py-1.5 bg-gray-800/90 hover:bg-gray-700 rounded border border-gray-600 transition-colors" title="Toggle Sound (M)">
               <span className="font-pixel text-[8px]">{soundEnabled ? '🔊' : '🔇'}</span>
             </button>
           </div>

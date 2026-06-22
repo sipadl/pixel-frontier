@@ -14,14 +14,18 @@ export function saveGame() {
     mp: state.mp,
     maxMp: state.maxMp,
     gold: state.gold,
-    atk: state.atk,
-    def: state.def,
+    skillPoints: state.skillPoints,
+    statPoints: state.statPoints,
+    stats: state.stats,
     equippedWeapon: state.equippedWeapon,
     inventory: state.inventory,
     items: state.items,
     currentMap: state.currentMap,
     playerPos: state.playerPos,
     facing: state.facing,
+    monstersKilled: state.monstersKilled,
+    quests: state.quests,
+    soundEnabled: state.soundEnabled,
   }
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveData))
