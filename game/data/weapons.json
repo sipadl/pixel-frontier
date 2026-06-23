@@ -10,5 +10,8 @@
   {"id": 9, "name": "Crystal Dagger", "rarity": "Rare", "atk": 10, "skills": [{"name": "Quick Stab", "damage": 14, "mpCost": 0, "type": "physical"}, {"name": "Crystal Shard", "damage": 20, "mpCost": 8, "type": "magic"}]},
   {"id": 10, "name": "Poison Dagger", "rarity": "Common", "atk": 6, "skills": [{"name": "Venom Strike", "damage": 8, "mpCost": 0, "type": "physical"}]},
   {"id": 11, "name": "Bamboo Staff", "rarity": "Common", "atk": 4, "skills": [{"name": "Staff Hit", "damage": 6, "mpCost": 0, "type": "physical"}]},
-  {"id": 12, "name": "War Hammer", "rarity": "Rare", "atk": 20, "skills": [{"name": "Smash", "damage": 22, "mpCost": 5, "type": "physical"}, {"name": "Earthquake", "damage": 28, "mpCost": 12, "type": "magic"}]}
+  {"id": 12, "name": "War Hammer", "rarity": "Rare", "atk": 20, "skills": [{"name": "Smash", "damage": 22, "mpCost": 5, "type": "physical"}, {"name": "Earthquake", "damage": 28, "mpCost": 12, "type": "magic"}]},
+  {"id": 13, "name": "Moon Blade", "rarity": "Rare", "atk": 14, "skills": [{"name": "Lunar Slash", "damage": 16, "mpCost": 0, "type": "physical"}, {"name": "Moonlight", "damage": 24, "mpCost": 8, "type": "magic"}]},
+  {"id": 14, "name": "Blood Scythe", "rarity": "Epic", "atk": 18, "skills": [{"name": "Reap", "damage": 20, "mpCost": 5, "type": "physical"}, {"name": "Blood Drain", "damage": 25, "mpCost": 10, "type": "magic"}, {"name": "Lifesteal", "damage": -15, "mpCost": 8, "type": "heal"}]},
+  {"id": 15, "name": "Gaia Spear", "rarity": "Legendary", "atk": 28, "skills": [{"name": "Piercing Thrust", "damage": 30, "mpCost": 10, "type": "physical"}, {"name": "Gaia Crush", "damage": 40, "mpCost": 20, "type": "magic"}, {"name": "Earth Shield", "damage": 0, "mpCost": 12, "type": "buff"}]}
 ]

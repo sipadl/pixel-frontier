@@ -76,6 +76,8 @@ export default function TapGame() {
   const tapAreaRef = useRef<HTMLDivElement>(null)
   const [walkFrame, setWalkFrame] = useState(0)
   const [scrollOffset, setScrollOffset] = useState(0)
+  const [battleMenu, setBattleMenu] = useState<'attack' | 'skill' | 'item' | 'run'>('attack')
+  const [showItems, setShowItems] = useState(false)
 
   // Walking animation frame
   useEffect(() => {
@@ -402,17 +404,93 @@ export default function TapGame() {
           ))}
         </div>
 
-        {screen === 'battle' && monster && monster.hp > 0 && (
-          <p className="font-pixel text-[10px] text-white/60 text-center mt-2 animate-pulse">
-            👆 TAP TO ATTACK!
-          </p>
-        )}
         {walkPhase && screen === 'game' && (
           <p className="font-pixel text-[10px] text-white/60 text-center mt-2 animate-pulse">
             🚶 Walking...
           </p>
         )}
       </div>
+
+      {/* FF-STYLE BATTLE MENU */}
+      {screen === 'battle' && monster && monster.hp > 0 && (
+        <div className="absolute bottom-16 left-2 right-2 z-30 pointer-events-auto">
+          {!showItems ? (
+            <div className="bg-[#0c1445] border-2 border-[#3b4cca] rounded-lg p-2 shadow-lg shadow-blue-900/50">
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setBattleMenu('attack'); tapAttack() }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded text-left transition-all ${battleMenu === 'attack' ? 'bg-[#1e2a8a]' : 'bg-[#141b5c] hover:bg-[#1e2a8a]'}`}
+                >
+                  <span className="text-sm">⚔️</span>
+                  <span className="font-pixel text-[11px] text-white">Attack</span>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (equippedWeapon && mp >= 5) {
+                      tapAttack() // use weapon skill
+                    }
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded text-left transition-all ${battleMenu === 'skill' ? 'bg-[#1e2a8a]' : 'bg-[#141b5c] hover:bg-[#1e2a8a]'} ${mp < 5 ? 'opacity-50' : ''}`}
+                >
+                  <span className="text-sm">🔮</span>
+                  <span className="font-pixel text-[11px] text-white">Skill</span>
+                  <span className="font-pixel text-[7px] text-blue-300 ml-auto">{mp}MP</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowItems(true) }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded text-left transition-all ${battleMenu === 'item' ? 'bg-[#1e2a8a]' : 'bg-[#141b5c] hover:bg-[#1e2a8a]'}`}
+                >
+                  <span className="text-sm">🎒</span>
+                  <span className="font-pixel text-[11px] text-white">Item</span>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (Math.random() < 0.5 + stats.spd * 0.02) {
+                      // fled successfully
+                      useGameStore.setState({ screen: 'game', walkPhase: true, monster: null })
+                    } else {
+                      // monster attacks
+                      tapAttack()
+                    }
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded text-left bg-[#141b5c] hover:bg-[#1e2a8a] transition-all"
+                >
+                  <span className="text-sm">🏃</span>
+                  <span className="font-pixel text-[11px] text-white">Run</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* ITEM SUB-MENU */
+            <div className="bg-[#0c1445] border-2 border-[#3b4cca] rounded-lg p-2 shadow-lg shadow-blue-900/50">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-pixel text-[10px] text-[#9ca3af]">Select Item:</span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowItems(false) }}
+                  className="font-pixel text-[9px] text-red-400 hover:text-red-300"
+                >✕</button>
+              </div>
+              <div className="space-y-0.5 max-h-24 overflow-y-auto">
+                {items.filter(i => i.quantity > 0).map(item => (
+                  <button key={item.id}
+                    onClick={(e) => { e.stopPropagation(); useItem(item.id); setShowItems(false) }}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded bg-[#141b5c] hover:bg-[#1e2a8a] text-left transition-colors"
+                  >
+                    <span className="text-sm">{item.type === 'heal' ? '🧪' : '💎'}</span>
+                    <span className="font-pixel text-[9px] text-white">{item.name}</span>
+                    <span className="font-pixel text-[8px] text-[#9ca3af] ml-auto">×{item.quantity}</span>
+                  </button>
+                ))}
+                {items.filter(i => i.quantity > 0).length === 0 && (
+                  <p className="font-pixel text-[9px] text-[#6b7280] text-center py-2">No items</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* VICTORY OVERLAY */}
       {showVictory && victoryRewards && (
@@ -425,20 +503,6 @@ export default function TapGame() {
         </div>
       )}
 
-      {/* Items quick-bar */}
-      {screen === 'battle' && monster && monster.hp > 0 && (
-        <div className="absolute bottom-28 left-0 right-0 z-30 flex justify-center gap-2 pointer-events-auto">
-          {items.filter(i => i.quantity > 0).slice(0, 3).map(item => (
-            <button key={item.id}
-              onClick={(e) => { e.stopPropagation(); useItem(item.id) }}
-              className="bg-gray-800/90 hover:bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 flex items-center gap-1 transition-colors"
-            >
-              <span className="text-sm">{item.type === 'heal' ? '🧪' : '💎'}</span>
-              <span className="font-pixel text-[8px] text-white">×{item.quantity}</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
