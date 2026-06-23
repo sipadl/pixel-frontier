@@ -111,6 +111,13 @@ export interface GameState {
   walkFrame: number
   bgOffset: number
 
+  // Dungeon Stages (BF-style linear progression)
+  stage: number
+  currentWave: number
+  totalWaves: number
+  stageMap: Record<number, { waves: number; boss: boolean; name: string; bg: string }>
+  autoBattle: boolean
+
   // UI
   showInventory: boolean
   showShop: boolean
@@ -154,6 +161,11 @@ export interface GameState {
   saveGame: () => void
   updateQuest: (type: string, value: any) => void
   useItem: (itemId: number) => void
+  // Stage actions
+  advanceWave: () => void
+  nextStage: () => void
+  setAutoBattle: (v: boolean) => void
+  startStage: (stageNum: number) => void
 }
 
 let dmgId = 0
@@ -251,6 +263,24 @@ const defaultState = {
   walkPhase: true,
   walkFrame: 0,
   bgOffset: 0,
+
+  // Dungeon Stages
+  stage: 1,
+  currentWave: 1,
+  totalWaves: 5,
+  stageMap: {
+    1: { waves: 5, boss: false, name: '🏘️ Slime Fields', bg: 'from-green-700 via-emerald-800 to-green-900' },
+    2: { waves: 6, boss: false, name: '🌲 Mushroom Grove', bg: 'from-emerald-800 via-green-900 to-emerald-950' },
+    3: { waves: 7, boss: true,  name: '🐺 Dark Forest',   bg: 'from-green-900 via-gray-900 to-emerald-950' },
+    4: { waves: 7, boss: false, name: '🦇 Bat Cave',      bg: 'from-gray-800 via-gray-900 to-purple-950' },
+    5: { waves: 8, boss: true,  name: '🐲 Dragon Lair',   bg: 'from-purple-900 via-red-950 to-gray-950' },
+    6: { waves: 8, boss: false, name: '❄️ Frozen Peaks',  bg: 'from-blue-900 via-cyan-950 to-gray-900' },
+    7: { waves: 9, boss: false, name: '🌋 Volcano Core',  bg: 'from-red-900 via-orange-950 to-gray-950' },
+    8: { waves: 9, boss: true,  name: '👹 Demon Realm',   bg: 'from-red-950 via-purple-950 to-black' },
+    9: { waves: 10, boss: false, name: '⚡ Storm Spire',   bg: 'from-yellow-900 via-gray-900 to-blue-950' },
+    10:{ waves: 10, boss: true,  name: '👑 Shadow Citadel', bg: 'from-purple-950 via-black to-red-950' },
+  },
+  autoBattle: false,
   showInventory: false,
   showShop: false,
   showQuests: false,
@@ -337,16 +367,20 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().gainGold(goldGain)
     get().updateQuest('kill', newKills)
 
-    // After delay, either gacha (if boss) or next enemy
+    // After delay, either gacha (if boss) or advance wave
     setTimeout(() => {
       set({ showVictory: false, victoryRewards: null })
       if (s.monster?.boss) {
+        // Boss defeated — gacha + advance to next stage
         const result = rollGacha()
         set({ screen: 'gacha', gachaResult: result })
         get().updateQuest('chest', get().quests.find(q => q.type === 'chest')?.current || 0 + 1)
         get().saveGame()
+        // After gacha closes, advance to next stage
+        setTimeout(() => { get().nextStage() }, 1500)
       } else {
-        set({ screen: 'game', monster: null })
+        // Regular wave — advance to next wave
+        get().advanceWave()
         get().saveGame()
       }
     }, 1500)
@@ -590,4 +624,53 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
     if (s.soundEnabled) SoundSystem.play('heal')
   },
+
+  // ===== STAGE / WAVE PROGRESSION (BF-style) =====
+  startStage: (stageNum: number) => {
+    const s = get()
+    const stageInfo = s.stageMap[stageNum]
+    if (!stageInfo) return
+    set({
+      stage: stageNum,
+      currentWave: 1,
+      totalWaves: stageInfo.waves,
+      screen: 'game',
+      walkPhase: false,
+      monster: null,
+      zone: 'dungeon',
+    })
+    get().startEncounter()
+  },
+
+  advanceWave: () => {
+    const s = get()
+    const stageInfo = s.stageMap[s.stage]
+    if (!stageInfo) return
+    const nextWave = s.currentWave + 1
+    if (nextWave > stageInfo.waves) {
+      // Stage complete — boss already defeated in onMonsterKill flow
+      return
+    }
+    set({ currentWave: nextWave })
+    setTimeout(() => get().startEncounter(), 800)
+  },
+
+  nextStage: () => {
+    const s = get()
+    const maxStage = Object.keys(s.stageMap).length
+    const next = s.stage + 1
+    if (next > maxStage) {
+      set({ screen: 'gameover' })
+      return
+    }
+    set({
+      stage: next,
+      currentWave: 1,
+      totalWaves: s.stageMap[next].waves,
+      monster: null,
+    })
+    setTimeout(() => get().startEncounter(), 1000)
+  },
+
+  setAutoBattle: (v: boolean) => set({ autoBattle: v }),
 }))

@@ -102,7 +102,23 @@ export default function TapGame() {
     if (monster && monster.boss && monster.hp / monster.maxHp <= 0.5 && monster.phase === 1) checkEnrage()
   }, [monster?.hp])
 
-  // Movement
+  // Auto-battle hook (doAttack defined below)
+  const autoBattle = useGameStore(s => s.autoBattle)
+  const setAutoBattle = useGameStore(s => s.setAutoBattle)
+
+  // Stage progression helpers
+  const stage = useGameStore(s => s.stage)
+  const currentWave = useGameStore(s => s.currentWave)
+  const totalWaves = useGameStore(s => s.totalWaves)
+  const stageMap = useGameStore(s => s.stageMap)
+  const stageInfo = stageMap[stage] || stageMap[1]
+  const advanceWave = useGameStore(s => s.advanceWave)
+  const nextStage = useGameStore(s => s.nextStage)
+  const startStage = useGameStore(s => s.startStage)
+  const showAllStages = useGameStore(s => s.showShop) // reused for stage select toggle
+  const setShowAllStages = useGameStore(s => s.toggleShop)
+
+  // Movement (no-op for BF-style, kept for compatibility)
   const movePlayer = useCallback((dir: 'up'|'down'|'left'|'right') => {
     if (isMoving || screen !== 'game') return
     setIsMoving(true)
@@ -144,6 +160,14 @@ export default function TapGame() {
     setTimeout(() => setHeroAttacking(false), 600)
   }, [heroAttacking, monster, tapAttack, equippedWeapon])
 
+  // Auto-battle: repeatedly call doAttack while it's player turn
+  useEffect(() => {
+    if (!autoBattle) return
+    if (screen !== 'battle' || !monster || monster.hp <= 0) return
+    const id = setTimeout(() => { doAttack(false) }, 500)
+    return () => clearTimeout(id)
+  }, [autoBattle, screen, monster?.hp, doAttack])
+
   // Tap quadrant
   const handleTapMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (screen !== 'game') return
@@ -177,38 +201,131 @@ export default function TapGame() {
   return (
     <div className="fixed inset-0 overflow-hidden select-none bg-black" style={{ touchAction: 'manipulation' }} onClick={handleTapMove}>
 
-      {/* ===== EXPLORATION (top-down) ===== */}
+      {/* ===== STAGE SCREEN (BF-style) ===== */}
       {screen === 'game' && (
         <>
-          <div className={`absolute inset-0 bg-gradient-to-b ${cfg.bg} transition-all duration-500`} />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="relative" style={{ width: (halfW * 2 + 1) * tileSize, height: (halfH * 2 + 1) * tileSize }}>
-              {renderTiles.map(({ x, y, tx, ty }) => (
-                <div key={`${tx}-${ty}`} className="absolute" style={{ left: x * tileSize, top: y * tileSize, width: tileSize, height: tileSize }}>
-                  <PixelArt data={tileData} palette={PALETTE_DEFAULT} pixelSize={tileSize / 32} />
-                  {decorPositions.current.filter(d => d.x === tx && d.y === ty).map((d, i) => (
-                    <div key={i} className="absolute inset-0 flex items-center justify-center text-xl opacity-80">{d.emoji}</div>
-                  ))}
-                  {tx === px && ty === py && (
-                    <div className="absolute inset-0 flex items-center justify-center z-10">
-                      <div className="relative" style={{ transform: isMoving ? 'translateY(-3px)' : 'translateY(0)' }}>
-                        <div className="absolute inset-[-6px] bg-yellow-400/40 rounded-full blur-sm" />
-                        <div className="absolute inset-[-2px] bg-blue-500/30 rounded-full" />
-                        <PixelArt data={heroSprite} palette={PALETTE_DEFAULT} pixelSize={4} />
-                        {equippedWeapon && <div className="absolute -top-2 -right-2 text-sm animate-pulse">⚔️</div>}
-                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                          <span className="font-pixel text-[7px] text-white bg-black/60 px-1 rounded">Hero</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+          {/* Stage BG */}
+          <div className={`absolute inset-0 bg-gradient-to-b ${stageInfo.bg} transition-all duration-500`} />
+
+          {/* Decorative parallax mountains */}
+          <div className="absolute top-[20%] left-0 right-0 h-[40%] pointer-events-none opacity-40">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/30 to-black/60"
+              style={{ clipPath: 'polygon(0 60%, 10% 40%, 20% 50%, 30% 35%, 40% 45%, 50% 30%, 60% 40%, 70% 25%, 80% 35%, 90% 20%, 100% 30%, 100% 100%, 0 100%)' }} />
+          </div>
+
+          {/* Stage Header */}
+          <div className="absolute top-3 left-0 right-0 z-20 text-center pointer-events-none">
+            <p className="font-pixel text-[10px] text-yellow-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+              ★ STAGE {stage} ★
+            </p>
+            <p className="font-pixel text-xs text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+              {stageInfo.name}
+            </p>
+            <div className="flex justify-center gap-1 mt-1">
+              {Array.from({ length: totalWaves }).map((_, i) => (
+                <div key={i} className={`h-1.5 w-3 rounded-full transition-all ${
+                  i + 1 < currentWave ? 'bg-green-500' :
+                  i + 1 === currentWave ? 'bg-yellow-400 animate-pulse' : 'bg-gray-600'
+                }`} />
               ))}
             </div>
+            <p className="font-pixel text-[8px] text-gray-300 mt-1">
+              Wave {currentWave} / {totalWaves}
+              {stageInfo.boss && currentWave === totalWaves && ' ⚠️ BOSS'}
+            </p>
           </div>
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-            <p className="font-pixel text-[8px] text-white/40 text-center">Tap kiri/kanan/atas/bawah untuk jalan</p>
+
+          {/* Hero preview center-left */}
+          <div className="absolute left-[10%] bottom-[35%] z-10 pointer-events-none">
+            <PixelArt data={heroSprite} palette={PALETTE_DEFAULT} pixelSize={6} />
+            <p className="font-pixel text-[7px] text-center text-white/80 mt-1">Lv.{level}</p>
           </div>
+
+          {/* Monster preview center-right (next wave) */}
+          <div className="absolute right-[10%] bottom-[35%] z-10 pointer-events-none">
+            <div className="text-6xl opacity-30 animate-pulse">
+              {currentWave === totalWaves && stageInfo.boss ? '👹' : '👾'}
+            </div>
+            <p className="font-pixel text-[7px] text-center text-red-400/80 mt-1">Next Wave</p>
+          </div>
+
+          {/* Player HP/MP bars bottom-center */}
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-64 z-20 pointer-events-none">
+            <div className="bg-black/60 backdrop-blur rounded-lg p-2 border border-gray-700">
+              <div className="flex justify-between mb-0.5">
+                <span className="font-pixel text-[8px] text-green-400">HP</span>
+                <span className="font-pixel text-[8px] text-green-300">{Math.max(0, hp)}/{maxHp}</span>
+              </div>
+              <div className="h-2 bg-gray-800 rounded-full overflow-hidden border border-gray-600">
+                <div className="h-full transition-all duration-200 rounded-full" style={{ width: `${Math.max(0, (hp / maxHp) * 100)}%`, background: hp > maxHp * 0.5 ? '#22c55e' : '#ef4444' }} />
+              </div>
+              <div className="flex justify-between mt-1 mb-0.5">
+                <span className="font-pixel text-[7px] text-blue-400">MP</span>
+                <span className="font-pixel text-[7px] text-blue-300">{mp}/{maxMp}</span>
+              </div>
+              <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden border border-gray-600">
+                <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-200" style={{ width: `${Math.max(0, (mp / maxMp) * 100)}%` }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Action buttons bottom */}
+          <div className="absolute bottom-3 left-0 right-0 z-30 flex justify-center gap-2 px-3">
+            <button onClick={() => { setAutoBattle(!autoBattle) }}
+              className={`font-pixel text-xs px-3 py-2 rounded-lg border-2 transition-all ${
+                autoBattle
+                  ? 'bg-yellow-600 border-yellow-400 text-black animate-pulse'
+                  : 'bg-gray-800/80 border-gray-600 text-gray-300'
+              }`}>
+              {autoBattle ? '⏸ AUTO' : '▶ AUTO'}
+            </button>
+            <button onClick={() => useGameStore.getState().startEncounter()}
+              className="font-pixel text-sm px-6 py-3 bg-gradient-to-b from-red-600 to-red-800 border-2 border-red-400 rounded-lg text-white shadow-lg shadow-red-500/30 hover:scale-105 transition-all">
+              ⚔️ FIGHT!
+            </button>
+            <button onClick={() => setShowAllStages()}
+              className="font-pixel text-xs px-3 py-2 rounded-lg border-2 bg-gray-800/80 border-gray-600 text-gray-300">
+              🗺️ STAGES
+            </button>
+          </div>
+
+          {/* Stage select modal */}
+          {showAllStages && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur flex items-center justify-center p-4" onClick={() => setShowAllStages()}>
+              <div className="bg-gray-900 border-2 border-yellow-400 rounded-xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+                  <h2 className="font-pixel text-sm text-yellow-400">⚔️ DUNGEON STAGES</h2>
+                  <button onClick={() => setShowAllStages()} className="text-gray-400 hover:text-white text-xl">×</button>
+                </div>
+                <div className="overflow-y-auto p-2 space-y-1">
+                  {Object.entries(stageMap).map(([num, info]) => {
+                    const n = parseInt(num)
+                    const unlocked = n <= stage + 1
+                    const isCurrent = n === stage
+                    return (
+                      <button key={num} disabled={!unlocked}
+                        onClick={() => { startStage(n); setShowAllStages() }}
+                        className={`w-full flex items-center px-3 py-2 rounded border-2 transition-all ${
+                          isCurrent ? 'bg-yellow-900/50 border-yellow-400' :
+                          unlocked ? 'bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 hover:border-gray-500' :
+                          'bg-gray-900/50 border-gray-800 opacity-40 cursor-not-allowed'
+                        }`}>
+                        <span className="font-pixel text-base mr-2">
+                          {info.boss ? '👹' : n % 2 === 0 ? '🌲' : '🏘️'}
+                        </span>
+                        <div className="flex-1 text-left">
+                          <p className="font-pixel text-xs text-white">{info.name}</p>
+                          <p className="font-pixel text-[8px] text-gray-400">{info.waves} waves{info.boss ? ' • BOSS' : ''}</p>
+                        </div>
+                        {isCurrent && <span className="font-pixel text-[8px] text-yellow-400">▼ NOW</span>}
+                        {!unlocked && <span className="font-pixel text-[8px] text-gray-500">🔒</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
