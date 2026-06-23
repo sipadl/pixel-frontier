@@ -181,8 +181,15 @@ export default function TapGame() {
                   {tx === px && ty === py && (
                     <div className="absolute inset-0 flex items-center justify-center z-10">
                       <div className="relative" style={{ transform: isMoving ? 'translateY(-3px)' : 'translateY(0)' }}>
-                        <PixelArt data={heroSprite} palette={PALETTE_DEFAULT} pixelSize={tileSize / 16} />
-                        {equippedWeapon && <div className="absolute -top-1 -right-1 text-[10px] animate-pulse">⚔️</div>}
+                        {/* Bright background circle so hero is always visible */}
+                        <div className="absolute inset-[-6px] bg-yellow-400/40 rounded-full blur-sm" />
+                        <div className="absolute inset-[-2px] bg-blue-500/30 rounded-full" />
+                        <PixelArt data={heroSprite} palette={PALETTE_DEFAULT} pixelSize={4} />
+                        {equippedWeapon && <div className="absolute -top-2 -right-2 text-sm animate-pulse">⚔️</div>}
+                        {/* Name label */}
+                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                          <span className="font-pixel text-[7px] text-white bg-black/60 px-1 rounded">Hero</span>
+                        </div>
                       </div>
                     </div>
                   )}
