@@ -1,0 +1,20 @@
+[
+  {"id": 101, "name": "Aldin", "rarity": 3, "element": "fire", "hp": 800, "atk": 120, "def": 50, "bb": {"name": "Flame Slash", "mult": 2.5, "hits": 3}, "sprite": "warrior"},
+  {"id": 102, "name": "Lyra", "rarity": 3, "element": "ice", "hp": 700, "atk": 100, "def": 45, "bb": {"name": "Ice Shard", "mult": 2.0, "hits": 4}, "sprite": "mage"},
+  {"id": 103, "name": "Zephyr", "rarity": 3, "element": "wind", "hp": 650, "atk": 110, "def": 40, "bb": {"name": "Gale Burst", "mult": 2.2, "hits": 3}, "sprite": "archer"},
+  {"id": 104, "name": "Terra", "rarity": 3, "element": "earth", "hp": 900, "atk": 95, "def": 70, "bb": {"name": "Quake", "mult": 2.4, "hits": 2}, "sprite": "guardian"},
+  {"id": 105, "name": "Lumina", "rarity": 3, "element": "light", "hp": 750, "atk": 115, "def": 48, "bb": {"name": "Holy Light", "mult": 2.3, "hits": 3}, "sprite": "cleric"},
+  {"id": 106, "name": "Shade", "rarity": 3, "element": "dark", "hp": 720, "atk": 125, "def": 42, "bb": {"name": "Dark Pulse", "mult": 2.4, "hits": 3}, "sprite": "rogue"},
+
+  {"id": 201, "name": "Ragna", "rarity": 4, "element": "fire", "hp": 1500, "atk": 220, "def": 90, "bb": {"name": "Inferno Blade", "mult": 3.5, "hits": 4}, "sprite": "warrior"},
+  {"id": 202, "name": "Sylphiette", "rarity": 4, "element": "ice", "hp": 1300, "atk": 200, "def": 80, "bb": {"name": "Blizzard", "mult": 3.0, "hits": 5}, "sprite": "mage"},
+  {"id": 203, "name": "Gale", "rarity": 4, "element": "wind", "hp": 1250, "atk": 210, "def": 75, "bb": {"name": "Tempest", "mult": 3.2, "hits": 4}, "sprite": "archer"},
+  {"id": 204, "name": "Atlas", "rarity": 4, "element": "earth", "hp": 1700, "atk": 190, "def": 120, "bb": {"name": "Tectonic Slam", "mult": 3.4, "hits": 3}, "sprite": "guardian"},
+
+  {"id": 301, "name": "Ignis, the Ember Lord", "rarity": 5, "element": "fire", "hp": 2800, "atk": 420, "def": 160, "bb": {"name": "Prominence", "mult": 5.0, "hits": 6}, "sprite": "warrior"},
+  {"id": 302, "name": "Aria of the Frost", "rarity": 5, "element": "ice", "hp": 2500, "atk": 400, "def": 140, "bb": {"name": "Absolute Zero", "mult": 4.8, "hits": 7}, "sprite": "mage"},
+  {"id": 303, "name": "Zephyrus King", "rarity": 5, "element": "wind", "hp": 2400, "atk": 410, "def": 130, "bb": {"name": "Maelstrom", "mult": 4.6, "hits": 6}, "sprite": "archer"},
+  {"id": 304, "name": "Gaia Titan", "rarity": 5, "element": "earth", "hp": 3200, "atk": 380, "def": 200, "bb": {"name": "Continental Crush", "mult": 4.9, "hits": 5}, "sprite": "guardian"},
+  {"id": 305, "name": "Seraphiel", "rarity": 5, "element": "light", "hp": 2600, "atk": 430, "def": 150, "bb": {"name": "Divine Judgment", "mult": 5.2, "hits": 6}, "sprite": "cleric"},
+  {"id": 306, "name": "Lord Thanatos", "rarity": 5, "element": "dark", "hp": 2700, "atk": 440, "def": 145, "bb": {"name": "Void Reaper", "mult": 5.1, "hits": 7}, "sprite": "rogue"}
+]

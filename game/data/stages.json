@@ -1,0 +1,12 @@
+[
+  {"id": 1, "name": "Slime Fields", "waves": 5, "energy": 8, "boss": false, "bg": "from-green-700 via-emerald-800 to-green-900"},
+  {"id": 2, "name": "Mushroom Grove", "waves": 6, "energy": 10, "boss": false, "bg": "from-emerald-800 via-green-900 to-emerald-950"},
+  {"id": 3, "name": "Dark Forest", "waves": 7, "energy": 12, "boss": true, "bg": "from-green-900 via-gray-900 to-emerald-950"},
+  {"id": 4, "name": "Bat Cave", "waves": 7, "energy": 12, "boss": false, "bg": "from-gray-800 via-gray-900 to-purple-950"},
+  {"id": 5, "name": "Dragon Lair", "waves": 8, "energy": 14, "boss": true, "bg": "from-purple-900 via-red-950 to-gray-950"},
+  {"id": 6, "name": "Frozen Peaks", "waves": 8, "energy": 14, "boss": false, "bg": "from-blue-900 via-cyan-950 to-gray-900"},
+  {"id": 7, "name": "Volcano Core", "waves": 9, "energy": 16, "boss": false, "bg": "from-red-900 via-orange-950 to-gray-950"},
+  {"id": 8, "name": "Demon Realm", "waves": 9, "energy": 16, "boss": true, "bg": "from-red-950 via-purple-950 to-black"},
+  {"id": 9, "name": "Storm Spire", "waves": 10, "energy": 18, "boss": false, "bg": "from-yellow-900 via-gray-900 to-blue-950"},
+  {"id": 10, "name": "Shadow Citadel", "waves": 10, "energy": 20, "boss": true, "bg": "from-purple-950 via-black to-red-950"}
+]
