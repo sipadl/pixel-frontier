@@ -524,7 +524,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   loadGame: () => {
     try {
-      const data = localStorage.getItem('pixel-saga-save')
+      const data = localStorage.getItem('pixel-frontier-save')
       if (data) {
         const p = JSON.parse(data)
         set({ ...p, screen: 'game', walkPhase: true, monster: null })
@@ -537,7 +537,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   saveGame: () => {
     const s = get()
     try {
-      localStorage.setItem('pixel-saga-save', JSON.stringify({
+      localStorage.setItem('pixel-frontier-save', JSON.stringify({
         level: s.level, exp: s.exp, expToNext: s.expToNext,
         hp: s.hp, maxHp: s.maxHp, mp: s.mp, maxMp: s.maxMp,
         gold: s.gold, skillPoints: s.skillPoints, statPoints: s.statPoints,

@@ -29,7 +29,7 @@ export default function MainMenu() {
             PIXEL
           </h1>
           <h1 className="font-pixel text-6xl md:text-8xl text-[#e04040] drop-shadow-[0_4px_0_#8b1a1a] tracking-wider leading-tight">
-            SAGA
+            FRONTIER
           </h1>
         </div>
         <p className="font-pixel text-xs text-[#8888cc] mt-4 tracking-[0.3em]">
@@ -57,7 +57,7 @@ export default function MainMenu() {
             📂  Continue
           </button>
         )}
-        <button onClick={() => alert('📖 STORY\n\nIn the realm of Pixel Saga, monsters roam free.\n\nAs a brave adventurer, you must explore three lands:\n\n🏘️ Peaceful Village\n🌲 Dark Forest\n⛰️ Shadow Cave\n\nDefeat bosses! Collect legendary weapons!\nBecome the strongest!')}
+        <button onClick={() => alert('📖 STORY\n\nIn the realm of Pixel Frontier, monsters roam free.\n\nAs a brave adventurer, you must explore three lands:\n\n🏘️ Peaceful Village\n🌲 Dark Forest\n⛰️ Shadow Cave\n\nDefeat bosses! Collect legendary weapons!\nBecome the strongest!')}
           className="font-pixel text-base text-[#aabbcc] bg-[#1a1a5e] border-2 border-[#aabbcc]/30 hover:bg-[#2a2a7e] hover:border-[#aabbcc] rounded-lg px-6 py-3 transition-all"
         >
           📖  Story

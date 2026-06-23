@@ -2,10 +2,10 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Pixel Saga — Browser RPG',
+  title: 'Pixel Frontier — Browser RPG',
   description: 'Turn-based pixel RPG with gacha weapon system. Explore maps, defeat monsters, collect legendary weapons!',
   openGraph: {
-    title: 'Pixel Saga',
+    title: 'Pixel Frontier',
     description: 'Browser RPG with gacha system',
     type: 'website',
   },
