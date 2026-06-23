@@ -174,7 +174,7 @@ export default function TapGame() {
             <div className="relative" style={{ width: (halfW * 2 + 1) * tileSize, height: (halfH * 2 + 1) * tileSize }}>
               {renderTiles.map(({ x, y, tx, ty }) => (
                 <div key={`${tx}-${ty}`} className="absolute" style={{ left: x * tileSize, top: y * tileSize, width: tileSize, height: tileSize }}>
-                  <PixelArt data={tileData} palette={PALETTE_DEFAULT} pixelSize={tileSize / 16} />
+                  <PixelArt data={tileData} palette={PALETTE_DEFAULT} pixelSize={tileSize / 32} />
                   {decorPositions.current.filter(d => d.x === tx && d.y === ty).map((d, i) => (
                     <div key={i} className="absolute inset-0 flex items-center justify-center text-xl opacity-80">{d.emoji}</div>
                   ))}
@@ -203,8 +203,30 @@ export default function TapGame() {
         <>
           <div className={`absolute inset-0 bg-gradient-to-b ${cfg.bg}`} />
 
+          {/* Battle floor perspective (FF-style ground) */}
+          <div className="absolute bottom-0 left-0 right-0 h-[55%] overflow-hidden pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/30 to-black/60" />
+            <div className="absolute bottom-0 left-0 right-0 flex justify-center">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className="opacity-80">
+                  <PixelArt data={tileData} palette={PALETTE_DEFAULT} pixelSize={4} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Battle back wall (FF-style perspective stripes) */}
+          <div className="absolute top-0 left-0 right-0 h-[50%] overflow-hidden pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="absolute top-4 opacity-30" style={{ left: `${10 + i * 18}%` }}>
+                <PixelArt data={tileData} palette={PALETTE_DEFAULT} pixelSize={2} />
+              </div>
+            ))}
+          </div>
+
           {monster && (
-            <div className="absolute top-[15%] right-[15%] z-20 pointer-events-none">
+            <div className="absolute top-[12%] right-[12%] z-20 pointer-events-none">
               <div className="relative">
                 {monster.boss && (
                   <>
@@ -214,7 +236,7 @@ export default function TapGame() {
                 )}
                 <div className={`transition-all duration-500 ${monster.hp <= 0 ? 'opacity-0 scale-0 rotate-180' : 'animate-bob'}`}>
                   {monsterSprite ? (
-                    <PixelArt data={monsterSprite} palette={PALETTE_DEFAULT} pixelSize={monster.boss ? 8 : 7} />
+                    <PixelArt data={monsterSprite} palette={PALETTE_DEFAULT} pixelSize={monster.boss ? 9 : 8} />
                   ) : (
                     <div className={`${monster.boss ? 'w-24 h-24 text-5xl' : 'w-20 h-20 text-3xl'} bg-gray-800/80 border-2 border-gray-500 rounded-xl flex items-center justify-center`}>👾</div>
                   )}

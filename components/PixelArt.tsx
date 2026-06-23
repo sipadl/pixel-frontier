@@ -78,8 +78,10 @@ function encode(rows: string[], palette: Record<string, number>): number[][] {
   })
 }
 
-const P = {
+const P: Record<string, number> = {
   '.': 0, 'o': 1, 'b': 2, 'y': 3, 's': 4, 'r': 5, 'S': 6, 'e': 7, 'w': 8, 'g': 9, 'G': 10, 'B': 11, 'p': 12, 'P': 13, 'k': 14, 'm': 15, 'd': 16, 't': 17, 'l': 18, 'L': 19, 'o2': 20, 'o3': 21, 'o4': 22, 's2': 23,
+  // digit aliases (so sprites can use '1' for dark outline etc.)
+  '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '0': 0,
 }
 
 const PALETTE_DEFAULT: Record<number, string> = {
