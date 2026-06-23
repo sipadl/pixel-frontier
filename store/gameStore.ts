@@ -346,9 +346,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         get().updateQuest('chest', get().quests.find(q => q.type === 'chest')?.current || 0 + 1)
         get().saveGame()
       } else {
-        // Auto-continue walking briefly then next encounter
-        set({ walkPhase: true, monster: null, bgOffset: 0 })
-        setTimeout(() => get().startEncounter(), 2500)
+        set({ screen: 'game', monster: null })
+        get().saveGame()
       }
     }, 1500)
   },

@@ -1,41 +1,24 @@
 'use client'
 import { useGameStore } from '@/store/gameStore'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import PixelArt, {
-  HERO_DOWN_1, HERO_DOWN_2, MONSTER_SPRITES, PALETTE_DEFAULT,
+  HERO_DOWN_1, HERO_DOWN_2, HERO_DOWN_3,
+  MONSTER_SPRITES, PALETTE_DEFAULT,
   TILE_GRASS_1, TILE_DIRT_1, TILE_STONE_1,
 } from '@/components/PixelArt'
 
 const ZONE_CONFIG = {
-  village: {
-    bg: 'from-sky-400 via-sky-300 to-green-300',
-    tile: 'grass' as const,
-    decor: ['🌳', '🌲', '🏡', '🌻', '🪨'],
-    label: '🏘️ Village',
-  },
-  forest: {
-    bg: 'from-green-700 via-emerald-800 to-green-900',
-    tile: 'dirt' as const,
-    decor: ['🌲', '🌳', '🍄', '🌿', '🌾'],
-    label: '🌲 Forest',
-  },
-  cave: {
-    bg: 'from-gray-900 via-purple-950 to-gray-900',
-    tile: 'stone' as const,
-    decor: ['🪨', '💎', '🦇', '⛓️', '🕯️'],
-    label: '⛰️ Cave',
-  },
+  village: { bg: 'from-sky-400 via-sky-300 to-green-300', tile: 'grass', label: '🏘️ Village', trees: ['🌳','🌲','🏡','🌻','🪨'] },
+  forest: { bg: 'from-green-700 via-emerald-800 to-green-900', tile: 'dirt', label: '🌲 Forest', trees: ['🌲','🌳','🍄','🌿','🌾'] },
+  cave: { bg: 'from-gray-900 via-purple-950 to-gray-900', tile: 'stone', label: '⛰️ Cave', trees: ['🪨','💎','🦇','⛓️','🕯️'] },
 }
 
-const TILE_MAP = {
-  grass: TILE_GRASS_1,
-  dirt: TILE_DIRT_1,
-  stone: TILE_STONE_1,
-}
+const TILE_MAP = { grass: TILE_GRASS_1, dirt: TILE_DIRT_1, stone: TILE_STONE_1 }
+const MAP_W = 8 // tiles wide
+const MAP_H = 8 // tiles tall
 
 export default function TapGame() {
   const screen = useGameStore(s => s.screen)
-  const walkPhase = useGameStore(s => s.walkPhase)
   const monster = useGameStore(s => s.monster)
   const hp = useGameStore(s => s.hp)
   const maxHp = useGameStore(s => s.maxHp)
@@ -55,43 +38,145 @@ export default function TapGame() {
   const battleLog = useGameStore(s => s.battleLog)
   const showVictory = useGameStore(s => s.showVictory)
   const victoryRewards = useGameStore(s => s.victoryRewards)
-  const shakeScreen = useGameStore(s => s.shakeScreen)
   const items = useGameStore(s => s.items)
   const statPoints = useGameStore(s => s.statPoints)
   const skillPoints = useGameStore(s => s.skillPoints)
-  const soundEnabled = useGameStore(s => s.soundEnabled)
   const questNotification = useGameStore(s => s.questNotification)
   const tapAttack = useGameStore(s => s.tapAttack)
   const clearDamageNumbers = useGameStore(s => s.clearDamageNumbers)
   const toggleInventory = useGameStore(s => s.toggleInventory)
-  const toggleShop = useGameStore(s => s.toggleShop)
   const toggleQuests = useGameStore(s => s.toggleQuests)
   const toggleStats = useGameStore(s => s.toggleStats)
-  const toggleSound = useGameStore(s => s.toggleSound)
   const useItem = useGameStore(s => s.useItem)
   const saveGame = useGameStore(s => s.saveGame)
   const checkEnrage = useGameStore(s => s.checkEnrage)
   const startEncounter = useGameStore(s => s.startEncounter)
 
-  const tapAreaRef = useRef<HTMLDivElement>(null)
+  // Top-down walking state
+  const [px, setPx] = useState(0) // player tile x
+  const [py, setPy] = useState(0) // player tile y
   const [walkFrame, setWalkFrame] = useState(0)
-  const [scrollOffset, setScrollOffset] = useState(0)
+  const [walkDir, setWalkDir] = useState<'down'|'up'|'left'|'right'>('down')
+  const [isMoving, setIsMoving] = useState(false)
+  const [steps, setSteps] = useState(0)
+  const tileSize = 64
+
+  // Battle menu state
   const [battleMenu, setBattleMenu] = useState<'attack' | 'skill' | 'item' | 'run'>('attack')
   const [showItems, setShowItems] = useState(false)
 
-  // Walking animation frame
-  useEffect(() => {
-    if (!walkPhase || screen !== 'game') return
-    const i = setInterval(() => setWalkFrame(f => (f + 1) % 2), 250)
-    return () => clearInterval(i)
-  }, [walkPhase, screen])
+  // Generate map tiles once
+  const [mapTiles] = useState(() => {
+    const tiles: number[][] = []
+    const cfg = ZONE_CONFIG[zone]
+    const tileData = TILE_MAP[cfg?.tile || 'grass']
+    // Return flat array of tile data references
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        tiles.push(tileData)
+      }
+    }
+    return tiles
+  })
 
-  // Background scroll
+  // Tree/decor positions (static)
+  const [decorPositions] = useState(() => {
+    const cfg = ZONE_CONFIG[zone]
+    const pos: { x: number; y: number; emoji: string }[] = []
+    for (let i = 0; i < 6; i++) {
+      pos.push({
+        x: Math.floor(Math.random() * (MAP_W - 2) + 1),
+        y: Math.floor(Math.random() * (MAP_H - 2) + 1),
+        emoji: cfg?.trees?.[i % 5] || '🌳',
+      })
+    }
+    return pos
+  })
+
+  // Walking frame anim
   useEffect(() => {
-    if (!walkPhase) return
-    const i = setInterval(() => setScrollOffset(o => (o + 2) % 32), 50)
+    if (screen !== 'game' || isMoving) return
+    const i = setInterval(() => setWalkFrame(f => (f + 1) % 2), 400)
     return () => clearInterval(i)
-  }, [walkPhase])
+  }, [screen, isMoving])
+
+  // Auto-save
+  useEffect(() => {
+    const t = setInterval(saveGame, 30000)
+    return () => clearInterval(t)
+  }, [])
+
+  // Clear damage numbers
+  useEffect(() => {
+    if (damageNumbers.length > 0) {
+      const t = setTimeout(clearDamageNumbers, 800)
+      return () => clearTimeout(t)
+    }
+  }, [damageNumbers])
+
+  // Check enrage
+  useEffect(() => {
+    if (monster && monster.boss && monster.hp / monster.maxHp <= 0.5 && monster.phase === 1)
+      checkEnrage()
+  }, [monster?.hp])
+
+  // KB shortcuts
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      const s = useGameStore.getState()
+      if (e.key === 'i' || e.key === 'I') s.toggleInventory()
+      if (e.key === 'q' || e.key === 'Q') s.toggleQuests()
+      if (e.key === 'c' || e.key === 'C') s.toggleStats()
+      if (e.key === 'Escape') {
+        if (s.showInventory) s.toggleInventory()
+        else if (s.showQuests) s.toggleQuests()
+        else if (s.showStats) s.toggleStats()
+      }
+      if (s.screen === 'battle' && (e.key === ' ' || e.key === 'Enter')) {
+        e.preventDefault(); s.tapAttack()
+      }
+      if (s.screen === 'game') {
+        if (e.key === 'ArrowUp') movePlayer('up')
+        if (e.key === 'ArrowDown') movePlayer('down')
+        if (e.key === 'ArrowLeft') movePlayer('left')
+        if (e.key === 'ArrowRight') movePlayer('right')
+      }
+    }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [px, py])
+
+  // Move player in a direction
+  const movePlayer = useCallback((dir: 'up'|'down'|'left'|'right') => {
+    if (isMoving || screen !== 'game') return
+    setWalkDir(dir)
+    setIsMoving(true)
+    setWalkFrame(f => (f + 1) % 2)
+
+    let nx = px, ny = py
+    if (dir === 'up') ny = Math.max(0, py - 1)
+    if (dir === 'down') ny = Math.min(MAP_H - 1, py + 1)
+    if (dir === 'left') nx = Math.max(0, px - 1)
+    if (dir === 'right') nx = Math.min(MAP_W - 1, px + 1)
+
+    // Only update position if within bounds
+    setPx(nx)
+    setPy(ny)
+
+    // After move animation, check random encounter
+    setTimeout(() => {
+      setIsMoving(false)
+      const newSteps = steps + (nx !== px || ny !== py ? 1 : 0)
+      setSteps(newSteps)
+      useGameStore.setState({ distance: useGameStore.getState().distance + 1 })
+
+      // Random encounter: ~12% per step, guaranteed boss every 10 kills
+      const shouldEncounter = Math.random() < 0.12 || (newSteps > 0 && newSteps % 15 === 0)
+      if (shouldEncounter) {
+        startEncounter()
+      }
+    }, 200)
+  }, [px, py, isMoving, screen, steps, startEncounter])
 
   // Check enrage
   useEffect(() => {
