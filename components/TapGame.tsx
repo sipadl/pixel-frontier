@@ -7,13 +7,14 @@ import PixelArt, {
   TILE_GRASS_1, TILE_DIRT_1, TILE_STONE_1,
 } from '@/components/PixelArt'
 
-type ZoneKey = 'village' | 'forest' | 'cave'
+type ZoneKey = 'village' | 'forest' | 'cave' | 'dungeon'
 type TileKey = 'grass' | 'dirt' | 'stone'
 
 const ZONE_CONFIG: Record<ZoneKey, { bg: string; tile: TileKey; label: string; trees: string[] }> = {
   village: { bg: 'from-sky-400 via-sky-300 to-green-300', tile: 'grass', label: '🏘️ Village', trees: ['🌳','🌲','🏡','🌻','🪨'] },
   forest: { bg: 'from-green-700 via-emerald-800 to-green-900', tile: 'dirt', label: '🌲 Forest', trees: ['🌲','🌳','🍄','🌿','🌾'] },
   cave: { bg: 'from-gray-900 via-purple-950 to-gray-900', tile: 'stone', label: '⛰️ Cave', trees: ['🪨','💎','🦇','⛓️','🕯️'] },
+  dungeon: { bg: 'from-purple-950 via-gray-900 to-black', tile: 'stone', label: '⚔️ Dungeon', trees: ['⚔️','🛡️','💀','🔥','🩸'] },
 }
 
 const TILE_MAP: Record<TileKey, number[][]> = { grass: TILE_GRASS_1, dirt: TILE_DIRT_1, stone: TILE_STONE_1 }

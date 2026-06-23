@@ -86,7 +86,7 @@ export interface GameState {
   // Progress
   kills: number
   distance: number
-  zone: 'village' | 'forest' | 'cave'
+  zone: 'village' | 'forest' | 'cave' | 'dungeon'
   bossKills: number
   totalDamage: number
   highestCombo: number
