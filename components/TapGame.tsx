@@ -214,34 +214,49 @@ export default function TapGame() {
       {/* ===== BATTLE (BF-style side-view) ===== */}
       {screen === 'battle' && (
         <>
-          {/* Layered BG */}
+          {/* Layer 1: Sky gradient */}
           <div className={`absolute inset-0 bg-gradient-to-b ${cfg.bg}`} />
-          <div className="absolute bottom-0 left-0 right-0 h-[50%] pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/50" />
-            <div className="absolute bottom-0 left-0 right-0 flex justify-center opacity-70">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i}><PixelArt data={tileData} palette={PALETTE_DEFAULT} pixelSize={4} /></div>
+
+          {/* Layer 2: Distant mountains (for village/forest) */}
+          {zone !== 'cave' && (
+            <div className="absolute top-[25%] left-0 right-0 h-[40%] pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-900/30 to-green-950/50"
+                style={{ clipPath: 'polygon(0 60%, 10% 40%, 20% 50%, 30% 35%, 40% 45%, 50% 30%, 60% 40%, 70% 25%, 80% 35%, 90% 20%, 100% 30%, 100% 100%, 0 100%)' }} />
+            </div>
+          )}
+          {/* Cave layer: stalactites */}
+          {zone === 'cave' && (
+            <div className="absolute top-0 left-0 right-0 h-[30%] pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-b from-gray-900 via-purple-900/40 to-transparent"
+                style={{ clipPath: 'polygon(5% 0, 15% 40%, 25% 10%, 35% 50%, 45% 15%, 55% 45%, 65% 5%, 75% 35%, 85% 20%, 95% 40%, 100% 0)' }} />
+            </div>
+          )}
+
+          {/* Layer 3: Ground floor (perspective tiles) */}
+          <div className="absolute bottom-0 left-0 right-0 h-[55%] pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/15 to-black/60" />
+            <div className="absolute bottom-0 left-0 right-0 flex justify-center opacity-60">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} style={{ transform: `scale(${1 + i * 0.05})` }}><PixelArt data={tileData} palette={PALETTE_DEFAULT} pixelSize={3} /></div>
               ))}
             </div>
           </div>
 
-          {/* Hero (LEFT side — BF style) */}
-          <div className="absolute left-[8%] bottom-[30%] z-20 pointer-events-none transition-transform duration-200"
+          {/* Hero (LEFT — BF style) */}
+          <div className="absolute left-[6%] bottom-[30%] z-20 pointer-events-none transition-transform duration-150"
             style={{ transform: `translateX(${heroLungeX}px)` }}>
             <div className="relative flex flex-col items-center">
               <div className="mb-1 bg-black/60 px-1.5 py-0.5 rounded">
                 <span className="font-pixel text-[8px] text-white">Lv.{level}</span>
                 <span className="font-pixel text-[7px] text-green-400 ml-1">Hero</span>
               </div>
-              <PixelArt data={heroSprite} palette={PALETTE_DEFAULT} pixelSize={6} />
-              {/* Weapon glow */}
+              <PixelArt data={heroSprite} palette={PALETTE_DEFAULT} pixelSize={8} />
               {equippedWeapon && (
-                <div className="absolute top-1 -right-3 text-sm animate-pulse">
+                <div className="absolute top-0 -right-4 text-lg animate-pulse filter drop-shadow-[0_0_6px_rgba(250,204,21,0.8)]">
                   {equippedWeapon.rarity === 'Legendary' ? '🌟' : equippedWeapon.rarity === 'Epic' ? '💎' : '⚔️'}
                 </div>
               )}
-              {/* Hero HP bar */}
-              <div className="mt-1 w-20">
+              <div className="mt-1 w-24">
                 <div className="flex justify-between"><span className="font-pixel text-[6px] text-green-400">HP</span><span className="font-pixel text-[6px] text-green-300">{Math.max(0, hp)}/{maxHp}</span></div>
                 <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden border border-gray-600">
                   <div className="h-full transition-all duration-200 rounded-full" style={{ width: `${Math.max(0, (hp / maxHp) * 100)}%`, background: hp > maxHp * 0.5 ? '#22c55e' : '#ef4444' }} />
@@ -275,20 +290,33 @@ export default function TapGame() {
                     <div className="absolute -inset-4 bg-yellow-500/20 rounded-xl animate-pulse blur-md" />
                   )}
                   {monsterSprite ? (
-                    <PixelArt data={monsterSprite} palette={PALETTE_DEFAULT} pixelSize={monster.boss ? 9 : 7} />
+                    <PixelArt data={monsterSprite} palette={PALETTE_DEFAULT} pixelSize={monster.boss ? 10 : 8} />
                   ) : (
-                    <div className={`${monster.boss ? 'w-24 h-24 text-5xl' : 'w-16 h-16 text-3xl'} bg-gray-800/80 border-2 border-gray-500 rounded-xl flex items-center justify-center`}>👾</div>
+                    <div className={`${monster.boss ? 'w-32 h-32 text-6xl' : 'w-24 h-24 text-4xl'} bg-gray-800/80 border-2 border-gray-500 rounded-xl flex items-center justify-center`}>👾</div>
                   )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Skill effect overlay */}
+          {/* Skill effect — weapon element burst */}
           {skillEffect && (
             <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center">
-              <div className="text-6xl animate-bounce" style={{ filter: `drop-shadow(0 0 20px ${skillEffect.color})` }}>{skillEffect.icon}</div>
-              <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 70% 40%, ${skillEffect.color}33 0%, transparent 60%)` }} />
+              <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 70% 40%, ${skillEffect.color}44 0%, transparent 60%)` }} />
+              <div className="relative" style={{ animation: 'bounce 0.5s ease-in-out 2' }}>
+                <div className="text-7xl" style={{ filter: `drop-shadow(0 0 30px ${skillEffect.color}) drop-shadow(0 0 60px ${skillEffect.color}88)` }}>{skillEffect.icon}</div>
+              </div>
+              {/* Elemental particles */}
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="absolute w-2 h-2 rounded-full"
+                  style={{
+                    background: skillEffect.color,
+                    left: `${60 + Math.cos((i / 6) * Math.PI * 2) * 20}%`,
+                    top: `${40 + Math.sin((i / 6) * Math.PI * 2) * 20}%`,
+                    animation: `pulse ${0.6 + i * 0.1}s ease-in-out infinite`,
+                    opacity: 0.7,
+                  }} />
+              ))}
             </div>
           )}
 
