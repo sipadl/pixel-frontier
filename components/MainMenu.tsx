@@ -44,25 +44,31 @@ export default function MainMenu() {
       </div>
 
       {/* Menu */}
-      <div className="flex flex-col gap-3 w-64">
-        <button onClick={startNewGame}
-          className="font-pixel text-base text-[#f0d050] bg-[#1a1a5e] border-2 border-[#f0d050]/50 hover:bg-[#2a2a7e] hover:border-[#f0d050] rounded-lg px-6 py-3 transition-all shadow-lg shadow-[#f0d050]/10"
-        >
-          ⚔️  New Game
-        </button>
-        {hasSave && (
-          <button onClick={loadGame}
-            className="font-pixel text-base text-[#88ccff] bg-[#1a1a5e] border-2 border-[#88ccff]/50 hover:bg-[#2a2a7e] hover:border-[#88ccff] rounded-lg px-6 py-3 transition-all"
-          >
-            📂  Continue
-          </button>
-        )}
-        <button onClick={() => alert('📖 STORY\n\nIn the realm of Pixel Frontier, monsters roam free.\n\nAs a brave adventurer, you must explore three lands:\n\n🏘️ Peaceful Village\n🌲 Dark Forest\n⛰️ Shadow Cave\n\nDefeat bosses! Collect legendary weapons!\nBecome the strongest!')}
-          className="font-pixel text-base text-[#aabbcc] bg-[#1a1a5e] border-2 border-[#aabbcc]/30 hover:bg-[#2a2a7e] hover:border-[#aabbcc] rounded-lg px-6 py-3 transition-all"
-        >
-          📖  Story
-        </button>
-      </div>
+      {/* Dungeon list */}
+      <ul className="flex flex-col gap-2 w-64 max-h-[40vh] overflow-y-auto">
+        {Array.from({ length: 5 }).map((_, i) => {
+          const stage = i + 1;
+          const completed = false; // placeholder, could be from state
+          return (
+            <li key={stage}
+              className="flex items-center py-2 px-3 cursor-pointer hover:bg-gray-800 rounded"
+              onClick={() => {
+                // start selected dungeon stage
+                startNewGame();
+                // set stage in store (will be overridden by startNewGame default 1, then set proper stage)
+                const { set } = useGameStore.getState();
+                set({ stage, zone: 'dungeon', remainingWaves: get().stageMap[stage].waves, screen: 'intro' });
+              }}
+            >
+              <span className="font-pixel text-xl mr-2">⚔️</span>
+              <span className="font-pixel">Stage {stage}</span>
+              <span className="ml-auto font-pixel text-sm text-green-400">
+                {completed ? '✓' : '—'}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
 
       <p className="absolute bottom-6 font-pixel text-[9px] text-gray-600">v1.0 — by Fadel</p>
     </div>
