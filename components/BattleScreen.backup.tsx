@@ -146,14 +146,7 @@ export default function BattleScreen() {
   const autoBattle = useGameStore(s => s.autoBattle)
   const showResult = useGameStore(s => s.showResult)
 
-  // Player unit attack handler – set flash target for visual hit
-  const handleUnitAttack = (instanceId: string) => {
-    setAttackingUnitId(instanceId)
-    setFlashTargetId(instanceId)
-    // Reset attack animation after short delay
-    setTimeout(() => setAttackingUnitId(null), 300)
-    triggerUnitAttack(instanceId)
-  }
+  const triggerUnitAttack = useGameStore(s => s.triggerUnitAttack)
   const triggerBraveBurst = useGameStore(s => s.triggerBraveBurst)
   const toggleAutoBattle = useGameStore(s => s.toggleAutoBattle)
   const startBattle = useGameStore(s => s.startBattle)
@@ -167,13 +160,6 @@ export default function BattleScreen() {
   const isPlayerTurn = battleState === 'PLAYER_TURN'
   // Attack animation states
   const [attackingUnitId, setAttackingUnitId] = useState<string | null>(null)
-  const [flashTargetId, setFlashTargetId] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!flashTargetId) return
-    const timeout = setTimeout(() => setFlashTargetId(null), 800)
-    return () => clearTimeout(timeout)
-  }, [flashTargetId])
   const [enemyAttackingUnitId, setEnemyAttackingUnitId] = useState<string | null>(null)
   const aliveSquad = battleSquadState.filter(m => m.isAlive)
   const aliveEnemies = enemyWave.filter(e => e.isAlive)
@@ -351,10 +337,9 @@ export default function BattleScreen() {
                   classType={roleToClass(member.role)}
                   element={member.element as any}
                   size={52}
-                  isAttacking={attackingUnitId === member.instanceId}
-                  isBeingAttacked={flashTargetId === member.instanceId}
-                  isDead={false}
-                  className={setClassName(`flex items-center gap-1 ${member.role === 'healer' ? 'absolute bottom-0 inset-x-2 h-2 w-full items-center absolute bottom-0' : 'absolute bottom-[2px] inset-x-2 h-2 w-4'}`)}
+                  isAttacking={false}
+                />
+                {/* HP bar overlay */}
                 <div className="absolute bottom-0 inset-x-1 h-1 bg-gray-900 rounded-full overflow-hidden">
                   <div className={`h-full rounded-full ${(member.hp / member.maxHp) > 0.5 ? 'bg-green-500' : (member.hp / member.maxHp) > 0.25 ? 'bg-yellow-500' : 'bg-red-500'}`}
                     style={{ width: `${(member.hp / member.maxHp) * 100}%` }} />
