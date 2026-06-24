@@ -11,10 +11,11 @@ const ELEM_EMOJI: Record<string, string> = {
   fire: '🔥', ice: '❄️', wind: '💨', earth: '🌿', light: '✨', dark: '🌑',
 }
 
-// Map UnitDef.sprite → SvgCharacterRenderer classType
-function spriteToClass(sprite: string): 'knight' | 'mage' | 'archer' {
-  if (sprite === 'mage' || sprite === 'cleric') return 'mage'
-  if (sprite === 'archer' || sprite === 'rogue') return 'archer'
+// Map role → SvgCharacterRenderer classType
+function roleToClass(role: string): 'knight' | 'mage' | 'archer' | 'healer' {
+  if (role === 'healer') return 'healer'
+  if (role === 'mage') return 'mage'
+  if (role === 'archer') return 'archer'
   return 'knight'
 }
 
@@ -100,7 +101,7 @@ function UnitPortrait({
       {/* Mini character preview */}
       <div className="w-8 h-8 flex items-center justify-center">
         <SvgCharacterRenderer
-          classType="knight"
+          classType={roleToClass(member.role)}
           element={member.element as any}
           size={36}
           isDead={false}
@@ -146,7 +147,7 @@ export default function BattleScreen() {
   const showResult = useGameStore(s => s.showResult)
 
   const triggerUnitAttack = useGameStore(s => s.triggerUnitAttack)
-  const braveBurst = useGameStore(s => s.braveBurst)
+  const triggerBraveBurst = useGameStore(s => s.triggerBraveBurst)
   const toggleAutoBattle = useGameStore(s => s.toggleAutoBattle)
   const startBattle = useGameStore(s => s.startBattle)
   const returnToTown = useGameStore(s => s.returnToTown)
@@ -173,15 +174,12 @@ export default function BattleScreen() {
     const bbHero = aliveSquad.find(h => h.bbGauge >= 100)
     const hero = bbHero || aliveSquad[0]
 
-    const enemyIdx = enemyWave.findIndex(e => e.isAlive)
-    if (enemyIdx === -1) return
-
     if (hero.bbGauge >= 100) {
-      braveBurst(battleSquadState.indexOf(hero), enemyIdx)
+      triggerBraveBurst(hero.instanceId)
     } else {
       triggerUnitAttack(hero.instanceId)
     }
-  }, [isPlayerTurn, aliveSquad, aliveEnemies, enemyWave, battleSquadState, triggerUnitAttack, braveBurst])
+  }, [isPlayerTurn, aliveSquad, aliveEnemies, triggerUnitAttack, triggerBraveBurst])
 
   useEffect(() => {
     if (!autoBattle || !isPlayerTurn || aliveSquad.length === 0 || aliveEnemies.length === 0) {
@@ -333,7 +331,7 @@ export default function BattleScreen() {
               style={{ transform: `translateX(${i * 6}px)`, opacity: 1 - i * 0.08 }}>
               <div className="relative">
                 <SvgCharacterRenderer
-                  classType={spriteToClass('warrior')}
+                  classType={roleToClass(member.role)}
                   element={member.element as any}
                   size={52}
                   isAttacking={false}
@@ -440,16 +438,13 @@ export default function BattleScreen() {
                 onAttack={() => {
                   if (!isPlayerTurn) return
                   if (member.bbGauge >= 100) {
-                    // Auto-target first enemy with BB
-                    const eIdx = enemyWave.findIndex(e => e.isAlive)
-                    if (eIdx !== -1) braveBurst(idx, eIdx)
+                    triggerBraveBurst(member.instanceId)
                   } else {
                     triggerUnitAttack(member.instanceId)
                   }
                 }}
                 onBB={() => {
-                  const eIdx = enemyWave.findIndex(e => e.isAlive)
-                  if (eIdx !== -1) braveBurst(idx, eIdx)
+                  triggerBraveBurst(member.instanceId)
                 }}
                 isPlayerTurn={isPlayerTurn}
               />
