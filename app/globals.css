@@ -223,6 +223,34 @@ svg[shape-rendering="crispEdges"] {
 }
 .animate-auto-pulse { animation: auto-pulse 1.5s ease-in-out infinite; }
 
+/* Turn banner animation */
+@keyframes turn-banner {
+  0% { transform: scale(0.3) translateY(-20px); opacity: 0; }
+  20% { transform: scale(1.1) translateY(0); opacity: 1; }
+  80% { transform: scale(1) translateY(0); opacity: 1; }
+  100% { transform: scale(0.9) translateY(-10px); opacity: 0; }
+}
+.animate-turn-banner { animation: turn-banner 1.2s ease-out forwards; }
+
+/* Wave transition flash */
+@keyframes wave-flash {
+  0% { opacity: 0; }
+  20% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+.animate-wave-flash { animation: wave-flash 0.6s ease-out forwards; }
+
+/* Victory shimmer */
+@keyframes victory-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-victory-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(251,191,36,0.3), transparent);
+  background-size: 200% 100%;
+  animation: victory-shimmer 2s linear infinite;
+}
+
 /* Battle BG theme variants */
 .battle-bg-forest .battle-bg-sky { background: linear-gradient(180deg, #0a1a0a 0%, #1a2e1a 40%, #0d1f0d 100%); }
 .battle-bg-forest .battle-bg-mid::before { background: #0d2a0d; opacity: 0.7; }

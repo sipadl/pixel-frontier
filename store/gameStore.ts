@@ -76,12 +76,48 @@ export interface DamagePopup {
   id: string
   amount: number
   type: 'normal' | 'crit' | 'heal' | 'enemy' | 'element'
-  targetIdx: number    // enemy index or squad index
+  targetIdx: number
   targetSide: 'enemy' | 'hero'
   ts: number
 }
 
 export type Screen = 'loading' | 'town' | 'squad' | 'summon' | 'dungeon' | 'battle' | 'gameover' | 'result'
+
+// ===== BATTLE STATE MACHINE =====
+export type BattleState =
+  | 'NOT_IN_BATTLE'
+  | 'PLAYER_TURN'
+  | 'ANIMATION_PLAYING'
+  | 'ENEMY_TURN'
+  | 'REWARD_SCREEN'
+  | 'GAME_OVER'
+
+// Squad state for the current battle (decoupled from persistent instances during battle)
+export interface BattleSquadMember {
+  instanceId: string
+  unitId: number
+  name: string
+  element: string
+  hp: number
+  maxHp: number
+  atk: number
+  def: number
+  bbGauge: number
+  bbName: string
+  isAlive: boolean
+}
+
+export interface EnemyWaveMember {
+  instanceId: string
+  name: string
+  hp: number
+  maxHp: number
+  atk: number
+  def: number
+  element: string  // default 'fire' for monsters
+  isBoss: boolean
+  isAlive: boolean
+}
 
 // ===== ELEMENTAL ADVANTAGE =====
 const ELEM_ADVANTAGE: Record<string, string> = {
@@ -116,49 +152,84 @@ export interface GameState {
   unlockedUnits: Record<number, { count: number; level: number }>
   materials: Record<number, number>
 
-  // Squad
+  // Squad (persistent)
   currentSquad: (string | null)[]
   squadInstances: Record<string, UnitInstance>
 
-  // Battle
+  // Screen
   screen: Screen
+
+  // === BATTLE STATE MACHINE (new) ===
+  battleState: BattleState
   currentStage: number | null
   currentWave: number
   totalWaves: number
-  enemies: ActiveEnemy[]
+  battleSquadState: BattleSquadMember[]
+  enemyWave: EnemyWaveMember[]
   battleLog: string[]
-  inputLocked: boolean
-  gameOver: { won: boolean; wave: number } | null
-  showResult: { won: boolean; rewards: { gold: number; gems: number; exp: number } } | null
   damagePopups: DamagePopup[]
   autoBattle: boolean
 
-  // Actions
+  // Legacy compat (kept for routing — page.tsx checks gameOver)
+  gameOver: { won: boolean; wave: number } | null
+  showResult: { won: boolean; rewards: { gold: number; gems: number; exp: number } } | null
+
+  // Energy regen
+  lastEnergyRegen: number
+
+  // === ACTIONS ===
+  // Resources
   deductEnergy: (amount: number) => boolean
   refillEnergy: () => void
+  refreshEnergy: () => void
+
+  // Gacha
   pullGacha: (count: 1 | 10) => GachaResult[]
-  setSquadSlot: (slot: number, instanceId: string | null) => void
+
+  // Squad management
   unlockUnit: (unitId: number) => string
+  setSquadSlot: (slot: number, instanceId: string | null) => void
+
+  // Battle actions (new state machine)
   startBattle: (stageId: number) => boolean
+  triggerUnitAttack: (instanceId: string) => void
+  executeEnemyTurn: () => void
+  checkWaveCompletion: () => void
+  resetBattleForRetry: () => void
+
+  // Navigation
+  returnToTown: () => void
+  setScreen: (screen: Screen) => void
+
+  // Damage popups
+  addDamagePopup: (popup: Omit<DamagePopup, 'id' | 'ts'>) => void
+  removeDamagePopup: (id: string) => void
+
+  // Auto battle
+  toggleAutoBattle: () => void
+
+  // Legacy compat actions (kept for page.tsx / other components)
   attackUnit: (squadIdx: number, enemyIdx: number) => void
   braveBurst: (squadIdx: number, enemyIdx: number) => void
   enemyTurn: () => void
   checkWaveEnd: () => void
   nextWave: () => void
   retryBattle: () => void
-  returnToTown: () => void
-  setScreen: (screen: Screen) => void
-  refreshEnergy: () => void
-  lastEnergyRegen: number
-  addDamagePopup: (popup: Omit<DamagePopup, 'id' | 'ts'>) => void
-  removeDamagePopup: (id: string) => void
-  toggleAutoBattle: () => void
+
+  // Reset
   resetGame: () => void
 }
 
 const GACHA_COST = { 1: 5, 10: 50 }
 const GACHA_RATES = { 5: 0.05, 4: 0.25, 3: 0.70 }
 const SHARDS_PER_DUP = 5
+
+// Animation timing (ms)
+const ANIM_DELAY = 600       // hero attack animation
+const ENEMY_TURN_DELAY = 700 // enemy attack animation
+const WAVE_DELAY = 800       // wave transition
+const BC_DROP_CHANCE = 0.3   // 30% chance to drop a BC on attack
+const BC_BB_FILL = 8         // each BC fills 8% BB
 
 let instCounter = 0
 let popupCounter = 0
@@ -180,23 +251,7 @@ function pickGachaUnit(): UnitDef {
   return pool[Math.floor(Math.random() * pool.length)]
 }
 
-function buildEnemyFromMonster(m: MonsterDef, wave: number, isFinal: boolean): ActiveEnemy {
-  const scaling = 1 + (wave - 1) * 0.15
-  const bossBonus = m.boss ? 1.5 : 1
-  const maxHp = Math.floor(m.hp * scaling * bossBonus)
-  return {
-    instanceId: `e${m.id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    monsterId: m.id,
-    name: m.name,
-    hp: maxHp,
-    maxHp,
-    atk: Math.floor(m.atk * scaling * bossBonus),
-    def: Math.floor(m.def * scaling * bossBonus),
-    isBoss: m.boss,
-    isAlive: true,
-  }
-}
-
+// ===== DEFAULT STATE =====
 const defaultState = {
   gems: 50,
   gold: 1000,
@@ -213,19 +268,73 @@ const defaultState = {
   squadInstances: {} as Record<string, UnitInstance>,
 
   screen: 'town' as Screen,
+
+  // Battle state machine
+  battleState: 'NOT_IN_BATTLE' as BattleState,
   currentStage: null as number | null,
   currentWave: 1,
   totalWaves: 1,
-  enemies: [] as ActiveEnemy[],
+  battleSquadState: [] as BattleSquadMember[],
+  enemyWave: [] as EnemyWaveMember[],
   battleLog: [] as string[],
-  inputLocked: false,
-  gameOver: null as { won: boolean; wave: number } | null,
-  showResult: null as { won: boolean; rewards: { gold: number; gems: number; exp: number } } | null,
   damagePopups: [] as DamagePopup[],
   autoBattle: false,
+
+  // Legacy compat
+  gameOver: null as { won: boolean; wave: number } | null,
+  showResult: null as { won: boolean; rewards: { gold: number; gems: number; exp: number } } | null,
+
   lastEnergyRegen: Date.now(),
 }
 
+// ===== BUILD WAVE =====
+function buildWaveEnemies(waveNum: number, totalWaves: number, stageDef: StageDef): EnemyWaveMember[] {
+  const eligibleMonsters = monsters.filter(m =>
+    m.map === 'village' || m.map === 'forest' || m.map === 'cave'
+  )
+  const isBossWave = waveNum === totalWaves && stageDef.boss
+  const numEnemies = isBossWave ? 1 : Math.min(3, 1 + Math.floor(waveNum / 2))
+  const result: EnemyWaveMember[] = []
+
+  const scaling = 1 + (waveNum - 1) * 0.15
+
+  if (isBossWave) {
+    const bossPool = monsters.filter(m => m.boss)
+    const m = bossPool[Math.floor(Math.random() * bossPool.length)]
+    const maxHp = Math.floor(m.hp * scaling * 1.5)
+    result.push({
+      instanceId: `e${m.id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      name: m.name,
+      hp: maxHp,
+      maxHp,
+      atk: Math.floor(m.atk * scaling * 1.5),
+      def: Math.floor(m.def * scaling * 1.5),
+      element: 'fire',
+      isBoss: true,
+      isAlive: true,
+    })
+  } else {
+    for (let i = 0; i < numEnemies; i++) {
+      const m = eligibleMonsters[Math.floor(Math.random() * eligibleMonsters.length)]
+      const maxHp = Math.floor(m.hp * scaling)
+      result.push({
+        instanceId: `e${m.id}_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 6)}`,
+        name: m.name,
+        hp: maxHp,
+        maxHp,
+        atk: Math.floor(m.atk * scaling),
+        def: Math.floor(m.def * scaling),
+        element: 'fire',
+        isBoss: false,
+        isAlive: true,
+      })
+    }
+  }
+
+  return result
+}
+
+// ===== STORE =====
 export const useGameStore = create<GameState>()(
   persist(
     (set, get) => ({
@@ -351,9 +460,8 @@ export const useGameStore = create<GameState>()(
         popupCounter++
         const id = `pop_${popupCounter}_${Date.now()}`
         set(s => ({
-          damagePopups: [...s.damagePopups.slice(-8), { ...popup, id, ts: Date.now() }],
+          damagePopups: [...s.damagePopups.slice(-12), { ...popup, id, ts: Date.now() }],
         }))
-        // Auto-remove after animation
         setTimeout(() => get().removeDamagePopup(id), 1000)
       },
 
@@ -365,101 +473,195 @@ export const useGameStore = create<GameState>()(
 
       toggleAutoBattle: () => set(s => ({ autoBattle: !s.autoBattle })),
 
-      // ===== BATTLE =====
+      // ╔══════════════════════════════════════════════════════╗
+      // ║  BATTLE STATE MACHINE — NEW CORE ACTIONS             ║
+      // ╚══════════════════════════════════════════════════════╝
+
+      // ─── 1. startBattle ───────────────────────────────────
       startBattle: (stageId) => {
         const s = get()
+        // Guard: already in battle
+        if (s.battleState !== 'NOT_IN_BATTLE') return false
+
         const stage = stages.find(st => st.id === stageId)
         if (!stage) return false
         if (s.energy < stage.energy) return false
 
-        const aliveCount = s.currentSquad.filter(id => {
-          if (!id) return false
-          const inst = s.squadInstances[id]
-          return inst && inst.isAlive
-        }).length
-        if (aliveCount === 0) return false
+        // Build battleSquadState from currentSquad + squadInstances
+        const battleSquad: BattleSquadMember[] = []
+        for (const instId of s.currentSquad) {
+          if (!instId) {
+            battleSquad.push({
+              instanceId: '',
+              unitId: 0,
+              name: '—',
+              element: 'fire',
+              hp: 0, maxHp: 0, atk: 0, def: 0,
+              bbGauge: 0, bbName: '', isAlive: false,
+            })
+            continue
+          }
+          const inst = s.squadInstances[instId]
+          if (!inst || !inst.isAlive) {
+            battleSquad.push({
+              instanceId: instId,
+              unitId: 0,
+              name: '—',
+              element: 'fire',
+              hp: 0, maxHp: 0, atk: 0, def: 0,
+              bbGauge: 0, bbName: '', isAlive: false,
+            })
+            continue
+          }
+          const def = findUnit(inst.unitId)
+          if (!def) continue
+          battleSquad.push({
+            instanceId: instId,
+            unitId: def.id,
+            name: def.name,
+            element: def.element,
+            hp: inst.hp,
+            maxHp: inst.maxHp,
+            atk: def.atk,
+            def: def.def,
+            bbGauge: inst.bbGauge,
+            bbName: def.bb.name,
+            isAlive: inst.isAlive,
+          })
+        }
+
+        // Ensure exactly 6 slots
+        while (battleSquad.length < 6) {
+          battleSquad.push({
+            instanceId: '', unitId: 0, name: '—', element: 'fire',
+            hp: 0, maxHp: 0, atk: 0, def: 0, bbGauge: 0, bbName: '', isAlive: false,
+          })
+        }
+
+        // Check at least 1 alive
+        if (battleSquad.every(m => !m.isAlive)) return false
+
+        // Load wave 1 enemies
+        const wave1 = buildWaveEnemies(1, stage.waves, stage)
 
         set({
           energy: s.energy - stage.energy,
           screen: 'battle',
+          battleState: 'PLAYER_TURN',
           currentStage: stageId,
           currentWave: 1,
           totalWaves: stage.waves,
-          enemies: [],
-          battleLog: [`⚔️ Stage ${stageId}: ${stage.name}`],
-          inputLocked: false,
-          gameOver: null,
-          showResult: null,
+          battleSquadState: battleSquad,
+          enemyWave: wave1,
+          battleLog: [`⚔️ Stage ${stageId}: ${stage.name}`, `🌊 Wave 1/${stage.waves}: ${wave1.length} enemy(ies)`],
           damagePopups: [],
           autoBattle: false,
+          gameOver: null,
+          showResult: null,
         })
-        get().nextWave()
+
         return true
       },
 
-      attackUnit: (squadIdx, enemyIdx) => {
+      // ─── 2. triggerUnitAttack ──────────────────────────────
+      triggerUnitAttack: (instanceId) => {
         const s = get()
-        if (s.inputLocked || s.screen !== 'battle') return
-        const instId = s.currentSquad[squadIdx]
-        if (!instId) return
-        const unit = s.squadInstances[instId]
-        if (!unit || !unit.isAlive) return
-        const def = findUnit(unit.unitId)
-        if (!def) return
-        const enemy = s.enemies[enemyIdx]
-        if (!enemy || !enemy.isAlive) return
+        // CRITICAL: only allow in PLAYER_TURN
+        if (s.battleState !== 'PLAYER_TURN') return
 
-        // Damage calc with elemental advantage (fire emblem of monster uses first skill element = 'fire' as default)
+        const heroIdx = s.battleSquadState.findIndex(m => m.instanceId === instanceId)
+        if (heroIdx === -1) return
+        const hero = s.battleSquadState[heroIdx]
+        if (!hero.isAlive) return
+
+        // Find first alive enemy
+        const enemyIdx = s.enemyWave.findIndex(e => e.isAlive)
+        if (enemyIdx === -1) return
+        const enemy = s.enemyWave[enemyIdx]
+
+        set({ battleState: 'ANIMATION_PLAYING' })
+
+        // Damage formula: Max(1, (Atk - Def*0.5) * ElementMult * Variance)
         const variance = 0.9 + Math.random() * 0.2
-        const baseDmg = Math.max(1, Math.floor((def.atk - enemy.def * 0.5) * variance))
+        const elemDmgMult = elemMult(hero.element, enemy.element)
         const isCrit = Math.random() < 0.15
         const critMult = isCrit ? 1.5 : 1.0
-        const finalDmg = Math.floor(baseDmg * critMult)
-        const newHp = Math.max(0, enemy.hp - finalDmg)
-        const dmgDealt = enemy.hp - newHp
+        const rawDmg = Math.max(1, Math.floor((hero.atk - enemy.def * 0.5) * variance * elemDmgMult * critMult))
+        const newEnemyHp = Math.max(0, enemy.hp - rawDmg)
+        const dmgDealt = enemy.hp - newEnemyHp
 
-        const updatedEnemies = [...s.enemies]
-        updatedEnemies[enemyIdx] = { ...enemy, hp: newHp, isAlive: newHp > 0 }
-
-        const newBbGauge = Math.min(100, unit.bbGauge + 20)
-        const newInstances = {
-          ...s.squadInstances,
-          [instId]: { ...unit, bbGauge: newBbGauge },
+        // BC drop roll
+        let bcDrop = false
+        const newSquad = [...s.battleSquadState]
+        if (Math.random() < BC_DROP_CHANCE) {
+          bcDrop = true
+          // BC fills ALL other alive heroes' BB by BC_BB_FILL
+          for (let i = 0; i < newSquad.length; i++) {
+            if (i !== heroIdx && newSquad[i].isAlive) {
+              newSquad[i] = {
+                ...newSquad[i],
+                bbGauge: Math.min(100, newSquad[i].bbGauge + BC_BB_FILL),
+              }
+            }
+          }
         }
 
+        // Attacker's BB also fills by 20
+        newSquad[heroIdx] = {
+          ...newSquad[heroIdx],
+          bbGauge: Math.min(100, newSquad[heroIdx].bbGauge + 20),
+        }
+
+        const newEnemyWave = [...s.enemyWave]
+        newEnemyWave[enemyIdx] = {
+          ...enemy,
+          hp: newEnemyHp,
+          isAlive: newEnemyHp > 0,
+        }
+
+        // Build log
+        const critTag = isCrit ? ' CRIT!' : ''
+        const elemTag = elemDmgMult > 1 ? ' ✦WEAK' : elemDmgMult < 1 ? ' (resist)' : ''
+        const bcTag = bcDrop ? ' [BC!]' : ''
+        const logMsg = `${hero.name} → ${enemy.name}: ${rawDmg}${critTag}${elemTag}${bcTag}`
+
         set({
-          enemies: updatedEnemies,
-          squadInstances: newInstances,
-          battleLog: [...s.battleLog.slice(-14),
-            `${def.name} → ${enemy.name}: ${finalDmg}${isCrit ? ' CRIT!' : ''} dmg`
-          ],
+          battleSquadState: newSquad,
+          enemyWave: newEnemyWave,
+          battleLog: [...s.battleLog.slice(-14), logMsg],
         })
 
-        // Damage popup on enemy
+        // Damage popup
         get().addDamagePopup({
-          amount: finalDmg,
-          type: isCrit ? 'crit' : 'normal',
+          amount: rawDmg,
+          type: isCrit ? 'crit' : elemDmgMult > 1 ? 'element' : 'normal',
           targetIdx: enemyIdx,
           targetSide: 'enemy',
         })
 
-        // After hero attacks, enemy turn follows
-        setTimeout(() => get().enemyTurn(), 500)
+        // After animation → check wave end → then enemy turn
+        setTimeout(() => {
+          get().checkWaveCompletion()
+        }, ANIM_DELAY)
       },
 
+      // Brave burst variant (called from UI when BB full)
       braveBurst: (squadIdx, enemyIdx) => {
         const s = get()
-        if (s.inputLocked || s.screen !== 'battle') return
-        const instId = s.currentSquad[squadIdx]
-        if (!instId) return
-        const unit = s.squadInstances[instId]
-        if (!unit || !unit.isAlive) return
-        if (unit.bbGauge < 100) return
-        const def = findUnit(unit.unitId)
-        if (!def) return
-        const enemy = s.enemies[enemyIdx]
+        if (s.battleState !== 'PLAYER_TURN') return
+
+        const hero = s.battleSquadState[squadIdx]
+        if (!hero || !hero.isAlive || hero.bbGauge < 100) return
+
+        const enemy = s.enemyWave[enemyIdx]
         if (!enemy || !enemy.isAlive) return
 
+        set({ battleState: 'ANIMATION_PLAYING' })
+
+        const def = findUnit(hero.unitId)
+        if (!def) return
+
+        // Multi-hit BB
         let totalDmg = 0
         let newEnemyHp = enemy.hp
         for (let i = 0; i < def.bb.hits; i++) {
@@ -469,16 +671,15 @@ export const useGameStore = create<GameState>()(
         }
         const actualDmg = enemy.hp - newEnemyHp
 
-        const updatedEnemies = [...s.enemies]
-        updatedEnemies[enemyIdx] = { ...enemy, hp: newEnemyHp, isAlive: newEnemyHp > 0 }
-        const newInstances = {
-          ...s.squadInstances,
-          [instId]: { ...unit, bbGauge: 0 },
-        }
+        const newEnemyWave = [...s.enemyWave]
+        newEnemyWave[enemyIdx] = { ...enemy, hp: newEnemyHp, isAlive: newEnemyHp > 0 }
+
+        const newSquad = [...s.battleSquadState]
+        newSquad[squadIdx] = { ...newSquad[squadIdx], bbGauge: 0 }
 
         set({
-          enemies: updatedEnemies,
-          squadInstances: newInstances,
+          battleSquadState: newSquad,
+          enemyWave: newEnemyWave,
           battleLog: [...s.battleLog.slice(-14), `💥 ${def.bb.name}! ${actualDmg} dmg to ${enemy.name}`],
         })
 
@@ -489,107 +690,103 @@ export const useGameStore = create<GameState>()(
           targetSide: 'enemy',
         })
 
-        // After BB, enemy turn
-        setTimeout(() => get().enemyTurn(), 500)
+        setTimeout(() => {
+          get().checkWaveCompletion()
+        }, ANIM_DELAY)
       },
 
-      // ===== ENEMY TURN =====
-      enemyTurn: () => {
+      // ─── 3. executeEnemyTurn ───────────────────────────────
+      executeEnemyTurn: () => {
         const s = get()
-        if (s.screen !== 'battle') return
+        if (s.battleState !== 'ENEMY_TURN') return
 
-        // Lock input during enemy turn
-        set({ inputLocked: true })
+        const aliveEnemies = s.enemyWave.filter(e => e.isAlive)
+        const newSquad = [...s.battleSquadState]
+        let totalDmg = 0
+        const popups: Array<Omit<DamagePopup, 'id' | 'ts'>> = []
 
-        const aliveEnemies = s.enemies.filter(e => e.isAlive)
-        const aliveSquadIndices: number[] = []
-        s.currentSquad.forEach((instId, idx) => {
-          if (!instId) return
-          const inst = s.squadInstances[instId]
-          if (inst && inst.isAlive) aliveSquadIndices.push(idx)
-        })
+        // Each alive enemy picks a random alive hero and attacks
+        for (const enemy of aliveEnemies) {
+          const aliveHeroIndices = newSquad
+            .map((m, i) => (m.isAlive ? i : -1))
+            .filter(i => i !== -1)
+          if (aliveHeroIndices.length === 0) break
 
-        if (aliveSquadIndices.length === 0) {
-          // Squad wiped
-          set({ gameOver: { won: false, wave: s.currentWave }, inputLocked: false })
-          return
-        }
-
-        let totalDamage = 0
-
-        // Each alive enemy attacks a random hero
-        aliveEnemies.forEach((enemy, eIdx) => {
-          const targetIdx = aliveSquadIndices[Math.floor(Math.random() * aliveSquadIndices.length)]
-          const targetInstId = s.currentSquad[targetIdx]
-          if (!targetInstId) return
-          const targetUnit = s.squadInstances[targetInstId]
-          if (!targetUnit || !targetUnit.isAlive) return
-          const targetDef = findUnit(targetUnit.unitId)
-          if (!targetDef) return
+          const targetIdx = aliveHeroIndices[Math.floor(Math.random() * aliveHeroIndices.length)]
+          const target = newSquad[targetIdx]
 
           const variance = 0.85 + Math.random() * 0.3
-          const rawDmg = Math.floor((enemy.atk * variance) - (targetDef.def * 0.3))
-          const dmg = Math.max(1, rawDmg)
-          const newHp = Math.max(0, targetUnit.hp - dmg)
-          totalDamage += dmg
+          const elemDmgMult = elemMult(enemy.element, target.element)
+          const rawDmg = Math.max(1, Math.floor((enemy.atk * variance - target.def * 0.3) * elemDmgMult))
+          const newHp = Math.max(0, target.hp - rawDmg)
+          totalDmg += rawDmg
 
-          const newInstances = { ...s.squadInstances }
-          newInstances[targetInstId] = {
-            ...targetUnit,
-            hp: newHp,
-            isAlive: newHp > 0,
-          }
-          set({ squadInstances: newInstances })
+          newSquad[targetIdx] = { ...target, hp: newHp, isAlive: newHp > 0 }
 
-          get().addDamagePopup({
-            amount: dmg,
+          popups.push({
+            amount: rawDmg,
             type: 'enemy',
             targetIdx,
             targetSide: 'hero',
-          })
-        })
-
-        // Log
-        if (aliveEnemies.length > 0) {
-          set(st => ({
-            battleLog: [...st.battleLog.slice(-14),
-              `👹 Enemies attack! ${totalDamage} total dmg to squad`
-            ],
-          }))
+          } as Omit<DamagePopup, 'id' | 'ts'>)
         }
 
-        // Check squad wipe
-        const updatedSquad = get().currentSquad
-        const updatedInstances = get().squadInstances
-        const anyAlive = updatedSquad.some(instId => {
-          if (!instId) return false
-          const inst = updatedInstances[instId]
-          return inst && inst.isAlive
+        // Apply damage popups
+        for (const p of popups) {
+          get().addDamagePopup(p as Omit<DamagePopup, 'id' | 'ts'>)
+        }
+
+        const logMsg = aliveEnemies.length > 0
+          ? `👹 Enemies attack! ${totalDmg} total dmg`
+          : ''
+
+        set({
+          battleSquadState: newSquad,
+          battleLog: logMsg ? [...s.battleLog.slice(-14), logMsg] : s.battleLog,
         })
 
+        // Check squad wipe
+        const anyAlive = newSquad.some(m => m.isAlive)
         if (!anyAlive) {
           setTimeout(() => {
-            set({ gameOver: { won: false, wave: get().currentWave }, inputLocked: false })
-          }, 400)
+            set({
+              battleState: 'GAME_OVER',
+              gameOver: { won: false, wave: get().currentWave },
+            })
+          }, ENEMY_TURN_DELAY)
           return
         }
 
-        // Unlock input after enemy turn
+        // Back to player turn
         setTimeout(() => {
-          set({ inputLocked: false })
-          get().checkWaveEnd()
-        }, 400)
+          set({ battleState: 'PLAYER_TURN' })
+        }, ENEMY_TURN_DELAY)
       },
 
-      checkWaveEnd: () => {
+      // ─── 4. checkWaveCompletion ────────────────────────────
+      checkWaveCompletion: () => {
         const s = get()
-        const allDead = s.enemies.every(e => !e.isAlive)
-        if (!allDead) return
+        if (s.battleState !== 'ANIMATION_PLAYING') {
+          // Called after animation delay — if we're still in animation, proceed
+          // If state already moved on (e.g. enemy killed trigger), do nothing
+          if (s.battleState !== 'PLAYER_TURN' && s.battleState !== 'ENEMY_TURN') return
+        }
 
+        const allDead = s.enemyWave.every(e => !e.isAlive)
+
+        if (!allDead) {
+          // Enemies still alive → enemy turn
+          set({ battleState: 'ENEMY_TURN' })
+          setTimeout(() => get().executeEnemyTurn(), 300)
+          return
+        }
+
+        // Wave cleared!
         if (s.currentWave >= s.totalWaves) {
+          // === STAGE COMPLETE → REWARD_SCREEN ===
           const stage = stages.find(st => st.id === s.currentStage)
-          const baseGold = stage ? stage.id * 100 : 100
-          const baseGems = stage && stage.boss ? 5 : 1
+          const baseGold = (stage ? stage.id * 100 : 100) + 500
+          const baseGems = 5
           const baseExp = 30 + (stage?.id || 1) * 10
 
           // Level up check
@@ -602,7 +799,22 @@ export const useGameStore = create<GameState>()(
             newExpToNext = Math.floor(newExpToNext * 1.3)
           }
 
+          // Sync battleSquadState HP back to squadInstances
+          const newInstances = { ...s.squadInstances }
+          for (const member of s.battleSquadState) {
+            if (!member.instanceId) continue
+            if (newInstances[member.instanceId]) {
+              newInstances[member.instanceId] = {
+                ...newInstances[member.instanceId],
+                hp: member.hp,
+                bbGauge: member.bbGauge,
+                isAlive: member.isAlive,
+              }
+            }
+          }
+
           set({
+            battleState: 'REWARD_SCREEN',
             screen: 'result',
             showResult: { won: true, rewards: { gold: baseGold, gems: baseGems, exp: baseExp } },
             gold: s.gold + baseGold,
@@ -610,88 +822,151 @@ export const useGameStore = create<GameState>()(
             exp: newExp,
             level: newLevel,
             expToNext: newExpToNext,
+            squadInstances: newInstances,
             battleLog: [...s.battleLog, `🏆 Victory! +${baseGold}g +${baseGems}💎 +${baseExp}exp`],
           })
           return
         }
 
-        get().nextWave()
+        // === NEXT WAVE ===
+        const nextWaveNum = s.currentWave + 1
+        const stageDef = stages.find(st => st.id === s.currentStage)
+        if (!stageDef) return
+
+        const nextEnemies = buildWaveEnemies(nextWaveNum, s.totalWaves, stageDef)
+
+        set({
+          battleState: 'ANIMATION_PLAYING',
+          currentWave: nextWaveNum,
+          enemyWave: nextEnemies,
+          battleLog: [...s.battleLog, `🌊 Wave ${nextWaveNum}/${s.totalWaves}: ${nextEnemies.length} enemy(ies)`],
+        })
+
+        // Brief pause then back to player
+        setTimeout(() => {
+          set({ battleState: 'PLAYER_TURN' })
+        }, WAVE_DELAY)
       },
 
-      nextWave: () => {
+      // ─── 5. resetBattleForRetry ────────────────────────────
+      resetBattleForRetry: () => {
         const s = get()
         const stage = stages.find(st => st.id === s.currentStage)
         if (!stage) return
-        const wave = s.currentWave
 
-        const eligibleMonsters = monsters.filter(m => m.map === 'village' || m.map === 'forest' || m.map === 'cave')
-        const numEnemies = wave === stage.waves ? 1 : Math.min(3, 1 + Math.floor(wave / 2))
-        const newEnemies: ActiveEnemy[] = []
-
-        if (wave === stage.waves && stage.boss) {
-          const bossPool = monsters.filter(m => m.boss)
-          const boss = bossPool[Math.floor(Math.random() * bossPool.length)]
-          newEnemies.push(buildEnemyFromMonster(boss, wave, true))
-        } else {
-          for (let i = 0; i < numEnemies; i++) {
-            const m = eligibleMonsters[Math.floor(Math.random() * eligibleMonsters.length)]
-            newEnemies.push(buildEnemyFromMonster(m, wave, false))
-          }
-        }
-
-        set({
-          enemies: newEnemies,
-          inputLocked: false,
-          battleLog: [...s.battleLog, `🌊 Wave ${wave}/${stage.waves}: ${newEnemies.length} enemy(ies)`],
-        })
-      },
-
-      retryBattle: () => {
-        const s = get()
-        const newInstances: Record<string, UnitInstance> = {}
-        for (const instId of Object.keys(s.squadInstances)) {
-          const inst = s.squadInstances[instId]
-          if (s.currentSquad.includes(instId)) {
-            const def = findUnit(inst.unitId)
+        // Reset all squad members to full HP, 0 BB — NO energy cost
+        const freshSquad: BattleSquadMember[] = s.battleSquadState.map(m => {
+          if (!m.isAlive || m.hp <= 0) {
+            const def = findUnit(m.unitId)
             if (def) {
-              newInstances[instId] = { ...inst, hp: def.hp, maxHp: def.hp, bbGauge: 0, isAlive: true }
-            } else {
-              newInstances[instId] = inst
+              return {
+                ...m,
+                hp: def.hp,
+                maxHp: def.hp,
+                bbGauge: 0,
+                isAlive: true,
+              }
             }
-          } else {
-            newInstances[instId] = inst
           }
-        }
+          // Also reset alive ones to full HP for retry fairness
+          const def = findUnit(m.unitId)
+          return {
+            ...m,
+            hp: def ? def.hp : m.maxHp,
+            maxHp: def ? def.hp : m.maxHp,
+            bbGauge: 0,
+            isAlive: true,
+          }
+        })
+
+        // Wave 1 fresh
+        const wave1 = buildWaveEnemies(1, stage.waves, stage)
+
         set({
-          squadInstances: newInstances,
+          battleState: 'PLAYER_TURN',
           currentWave: 1,
-          enemies: [],
-          battleLog: [`🔄 Retry Stage ${s.currentStage}`],
-          inputLocked: false,
+          battleSquadState: freshSquad,
+          enemyWave: wave1,
+          battleLog: [`🔄 Retry Stage ${s.currentStage}`, `🌊 Wave 1/${stage.waves}: ${wave1.length} enemy(ies)`],
+          damagePopups: [],
           gameOver: null,
           showResult: null,
-          damagePopups: [],
         })
-        get().nextWave()
       },
 
+      // ╚══════════════════════════════════════════════════════╝
+
+      // ===== NAVIGATION =====
       returnToTown: () => {
+        // Sync battleSquadState HP back to persistent instances FIRST
+        const s = get()
+        const newInstances = { ...s.squadInstances }
+        let synced = false
+        for (const member of s.battleSquadState) {
+          if (!member.instanceId) continue
+          if (newInstances[member.instanceId]) {
+            newInstances[member.instanceId] = {
+              ...newInstances[member.instanceId],
+              hp: member.hp,
+              bbGauge: member.bbGauge,
+              isAlive: member.isAlive,
+            }
+            synced = true
+          }
+        }
+
         set({
           screen: 'town',
+          battleState: 'NOT_IN_BATTLE',
           currentStage: null,
           currentWave: 1,
-          enemies: [],
+          battleSquadState: [],
+          enemyWave: [],
           battleLog: [],
-          inputLocked: false,
-          gameOver: null,
-          showResult: null,
           damagePopups: [],
           autoBattle: false,
+          gameOver: null,
+          showResult: null,
+          ...(synced ? { squadInstances: newInstances } : {}),
         })
       },
 
       setScreen: (screen) => set({ screen }),
       resetGame: () => set({ ...defaultState }),
+
+      // ╔══════════════════════════════════════════════════════╗
+      // ║  LEGACY COMPAT — Bridge old actions to new SM        ║
+      // ╚══════════════════════════════════════════════════════╝
+
+      attackUnit: (squadIdx, _enemyIdx) => {
+        // Bridge: find the squad member and delegate to triggerUnitAttack
+        const s = get()
+        if (s.battleState !== 'PLAYER_TURN') return
+        const member = s.battleSquadState[squadIdx]
+        if (!member || !member.isAlive) return
+        get().triggerUnitAttack(member.instanceId)
+      },
+
+      enemyTurn: () => {
+        const s = get()
+        if (s.battleState !== 'ENEMY_TURN') return
+        get().executeEnemyTurn()
+      },
+
+      checkWaveEnd: () => {
+        get().checkWaveCompletion()
+      },
+
+      nextWave: () => {
+        get().checkWaveCompletion()
+      },
+
+      retryBattle: () => {
+        const s = get()
+        if (s.battleState === 'GAME_OVER') {
+          get().resetBattleForRetry()
+        }
+      },
     }),
     {
       name: 'pixel-frontier-save',
@@ -714,9 +989,5 @@ export const useGameStore = create<GameState>()(
 
 // Helper: check if squad wiped
 export function checkSquadWipe(state: GameState): boolean {
-  return state.currentSquad.every(id => {
-    if (!id) return true
-    const inst = state.squadInstances[id]
-    return !inst || !inst.isAlive
-  })
+  return state.battleSquadState.every(m => !m.isAlive)
 }
