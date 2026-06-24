@@ -73,7 +73,7 @@ export interface GachaResult {
   shardsGained: number
 }
 
-export type Screen = 'town' | 'squad' | 'summon' | 'dungeon' | 'battle' | 'gameover' | 'result'
+export type Screen = 'loading' | 'town' | 'squad' | 'summon' | 'dungeon' | 'battle' | 'gameover' | 'result'
 
 // ===== GAME STATE =====
 export interface GameState {
@@ -122,6 +122,8 @@ export interface GameState {
   retryBattle: () => void
   returnToTown: () => void
   setScreen: (screen: Screen) => void
+  refreshEnergy: () => void
+  lastEnergyRegen: number  // timestamp of last energy regen check
   resetGame: () => void
 }
 
@@ -190,6 +192,7 @@ const defaultState = {
   inputLocked: false,
   gameOver: null as { won: boolean; wave: number } | null,
   showResult: null as { won: boolean; rewards: { gold: number; gems: number; exp: number } } | null,
+  lastEnergyRegen: Date.now(),
 }
 
 export const useGameStore = create<GameState>()(
@@ -206,6 +209,20 @@ export const useGameStore = create<GameState>()(
       },
 
       refillEnergy: () => set({ energy: get().maxEnergy }),
+
+      refreshEnergy: () => {
+        const s = get()
+        const now = Date.now()
+        const elapsed = now - s.lastEnergyRegen
+        const REGEN_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes per energy point
+        const pointsRegained = Math.floor(elapsed / REGEN_INTERVAL_MS)
+        if (pointsRegained <= 0) return
+        const newEnergy = Math.min(s.maxEnergy, s.energy + pointsRegained)
+        set({
+          energy: newEnergy,
+          lastEnergyRegen: s.lastEnergyRegen + pointsRegained * REGEN_INTERVAL_MS,
+        })
+      },
 
       // ===== GACHA =====
       pullGacha: (count) => {
@@ -554,6 +571,7 @@ export const useGameStore = create<GameState>()(
         materials: state.materials,
         currentSquad: state.currentSquad,
         squadInstances: state.squadInstances,
+        lastEnergyRegen: state.lastEnergyRegen,
       }),
     }
   )
