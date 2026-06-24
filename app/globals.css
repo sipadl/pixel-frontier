@@ -39,6 +39,12 @@ body {
 }
 .animate-slide-in-right { animation: slide-in-right 0.5s ease-out; }
 
+@keyframes slide-in-left {
+  0% { transform: translateX(-80px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in-left { animation: slide-in-left 0.5s ease-out; }
+
 @keyframes bob {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-4px); }
@@ -78,3 +84,153 @@ svg[shape-rendering="crispEdges"] {
 [class*="font-pixel"] {
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
+
+/* Parallax battle BG layers */
+.battle-bg-sky {
+  background: linear-gradient(180deg, #0c1445 0%, #1a1a3e 30%, #2d1b4e 60%, #1a1a2e 100%);
+}
+.battle-bg-mid {
+  background: none;
+  position: absolute;
+  bottom: 25%;
+  left: 0; right: 0;
+  height: 40%;
+}
+.battle-bg-mid::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 100%;
+  background: #0a0a1a;
+  clip-path: polygon(
+    0% 60%, 5% 45%, 12% 55%, 20% 30%, 28% 50%, 35% 25%, 42% 45%,
+    50% 20%, 58% 40%, 65% 25%, 72% 50%, 80% 35%, 88% 55%, 95% 40%, 100% 50%,
+    100% 100%, 0% 100%
+  );
+  opacity: 0.6;
+}
+.battle-bg-mid::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 100%;
+  background: #111125;
+  clip-path: polygon(
+    0% 70%, 8% 55%, 15% 65%, 22% 45%, 30% 60%, 38% 40%, 45% 55%,
+    55% 35%, 62% 50%, 70% 40%, 78% 60%, 85% 45%, 92% 55%, 100% 65%,
+    100% 100%, 0% 100%
+  );
+  opacity: 0.4;
+}
+.battle-bg-ground {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 25%;
+  background: linear-gradient(180deg, #1a1a0f 0%, #0d0d08 40%, #0a0a06 100%);
+  border-top: 2px solid #2a2a1a;
+}
+.battle-bg-ground::before {
+  content: '';
+  position: absolute;
+  top: 4px; left: 0; right: 0;
+  height: 8px;
+  background: repeating-linear-gradient(90deg, transparent 0px, transparent 20px, #2a2a1a 20px, #2a2a1a 22px);
+  opacity: 0.5;
+}
+
+/* Parallax stars */
+.battle-stars {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 60%;
+  background-image:
+    radial-gradient(1px 1px at 10% 15%, #fff 100%, transparent),
+    radial-gradient(1px 1px at 25% 8%, #ddf 100%, transparent),
+    radial-gradient(1px 1px at 40% 22%, #fff 100%, transparent),
+    radial-gradient(1px 1px at 55% 5%, #ddf 100%, transparent),
+    radial-gradient(1px 1px at 70% 18%, #fff 100%, transparent),
+    radial-gradient(1px 1px at 85% 12%, #ddf 100%, transparent),
+    radial-gradient(1px 1px at 15% 30%, #fff 100%, transparent),
+    radial-gradient(1px 1px at 60% 28%, #ddf 100%, transparent),
+    radial-gradient(1px 1px at 90% 25%, #fff 100%, transparent),
+    radial-gradient(1px 1px at 35% 35%, #ddf 100%, transparent);
+  opacity: 0.4;
+  animation: twinkle 4s ease-in-out infinite alternate;
+}
+@keyframes twinkle {
+  0% { opacity: 0.3; }
+  100% { opacity: 0.6; }
+}
+
+/* Floating damage number */
+.damage-number {
+  position: absolute;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 40;
+  animation: dmg-float 0.9s ease-out forwards;
+  text-shadow: 1px 1px 2px #000, -1px -1px 2px #000;
+}
+.damage-number.crit {
+  font-size: 14px;
+  color: #fbbf24 !important;
+}
+.damage-number.heal {
+  color: #22c55e !important;
+}
+.damage-number.enemy-dmg {
+  color: #ef4444 !important;
+}
+.damage-number.element-weak {
+  color: #f97316 !important;
+  font-size: 12px;
+}
+@keyframes dmg-float {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  15% { transform: translateY(-8px) scale(1.2); opacity: 1; }
+  30% { transform: translateY(-15px) scale(1); }
+  100% { transform: translateY(-50px) scale(0.8); opacity: 0; }
+}
+
+/* Attack lunge animation */
+@keyframes lunge-right {
+  0% { transform: translateX(0); }
+  40% { transform: translateX(30px); }
+  100% { transform: translateX(0); }
+}
+.animate-lunge-right { animation: lunge-right 0.35s ease-out; }
+
+@keyframes lunge-left {
+  0% { transform: translateX(0); }
+  40% { transform: translateX(-30px); }
+  100% { transform: translateX(0); }
+}
+.animate-lunge-left { animation: lunge-left 0.35s ease-out; }
+
+/* Enemy hit flash */
+@keyframes hit-flash {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(3) saturate(0); }
+}
+.animate-hit { animation: hit-flash 0.2s ease-out; }
+
+/* Auto-battle pulse */
+@keyframes auto-pulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(34,197,94,0.3); }
+  50% { box-shadow: 0 0 12px rgba(34,197,94,0.8); }
+}
+.animate-auto-pulse { animation: auto-pulse 1.5s ease-in-out infinite; }
+
+/* Battle BG theme variants */
+.battle-bg-forest .battle-bg-sky { background: linear-gradient(180deg, #0a1a0a 0%, #1a2e1a 40%, #0d1f0d 100%); }
+.battle-bg-forest .battle-bg-mid::before { background: #0d2a0d; opacity: 0.7; }
+.battle-bg-cave .battle-bg-sky { background: linear-gradient(180deg, #0a0a14 0%, #141428 40%, #0a0a1a 100%); }
+.battle-bg-cave .battle-stars { display: none; }
+.battle-bg-cave .battle-bg-mid::before { background: #0a0a1a; }
+.battle-bg-volcano .battle-bg-sky { background: linear-gradient(180deg, #1a0a0a 0%, #2e1a0a 40%, #1a0d0a 100%); }
+.battle-bg-ice .battle-bg-sky { background: linear-gradient(180deg, #0a1428 0%, #1a2848 40%, #0d1a30 100%); }
+.battle-bg-ice .battle-bg-mid::before { background: #1a2848; }
+.battle-bg-dark .battle-bg-sky { background: linear-gradient(180deg, #050510 0%, #0a0a20 40%, #050515 100%); }
+.battle-bg-dark .battle-bg-mid::before { background: #050515; }
