@@ -102,6 +102,7 @@ export interface BattleSquadMember {
   name: string
   element: string
   role: UnitRole
+  rarity: 3 | 4 | 5
   hp: number
   maxHp: number
   atk: number
@@ -506,7 +507,7 @@ export const useGameStore = create<GameState>()(
               instanceId: '',
               unitId: 0,
               name: '—',
-              element: 'fire', role: 'knight',
+              element: 'fire', role: 'knight', rarity: 3,
               hp: 0, maxHp: 0, atk: 0, def: 0,
               bbGauge: 0, bbName: '', isAlive: false,
             })
@@ -518,7 +519,7 @@ export const useGameStore = create<GameState>()(
               instanceId: instId,
               unitId: 0,
               name: '—',
-              element: 'fire', role: 'knight',
+              element: 'fire', role: 'knight', rarity: 3,
               hp: 0, maxHp: 0, atk: 0, def: 0,
               bbGauge: 0, bbName: '', isAlive: false,
             })
@@ -545,7 +546,7 @@ export const useGameStore = create<GameState>()(
         // Ensure exactly 6 slots
         while (battleSquad.length < 6) {
           battleSquad.push({
-            instanceId: '', unitId: 0, name: '—', element: 'fire', role: 'knight',
+            instanceId: '', unitId: 0, name: '—', element: 'fire', role: 'knight', rarity: 3,
             hp: 0, maxHp: 0, atk: 0, def: 0, bbGauge: 0, bbName: '', isAlive: false,
           })
         }

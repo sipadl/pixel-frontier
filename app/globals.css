@@ -224,13 +224,44 @@ svg[shape-rendering="crispEdges"] {
 .animate-auto-pulse { animation: auto-pulse 1.5s ease-in-out infinite; }
 
 /* Turn banner animation */
-@keyframes turn-banner {
-  0% { transform: scale(0.3) translateY(-20px); opacity: 0; }
-  20% { transform: scale(1.1) translateY(0); opacity: 1; }
-  80% { transform: scale(1) translateY(0); opacity: 1; }
-  100% { transform: scale(0.9) translateY(-10px); opacity: 0; }
+@keyframes player-attack-dash {
+  0%   { transform: translateX(0) translateY(0) scale(1); }
+  20%  { transform: translateX(10px) translateY(-4px) scale(1.05); }
+  40%  { transform: translateX(20px) translateY(-8px) scale(1.08); }
+  60%  { transform: translateX(25px) translateY(-10px) scale(1.10); }
+  80%  { transform: translateX(20px) translateY(-6px) scale(1.05); }
+  100% { transform: translateX(0) translateY(0) scale(1); }
 }
-.animate-turn-banner { animation: turn-banner 1.2s ease-out forwards; }
+
+@keyframes enemy-attack-dash {
+  0%   { transform: translateX(0) translateY(0) scale(1); }
+  20%  { transform: translateX(-10px) translateY(-4px) scale(1.05); }
+  40%  { transform: translateX(-20px) translateY(-6px) scale(1.08); }
+  60%  { transform: translateX(-25px) translateY(-8px) scale(1.10); }
+  80%  { transform: translateX(-20px) translateY(-6px) scale(1.05); }
+  100% { transform: translateX(0) translateY(0) scale(1); }
+}
+
+@keyframes flinch-shake {
+  0%   { transform: translateX(0) translateY(0); }
+  15%  { transform: translateX(-2px) translateY(0); }
+  30%  { transform: translateX(2px) translateY(0); }
+  45%  { transform: translateX(0) translateY(0); }
+  60%  { transform: translateX(-1px) translateY(0); }
+  75%  { transform: translateX(1px) translateY(0); }
+  90%  { transform: translateX(0) translateY(0); }
+  100% { transform: translateX(0) translateY(0); }
+}
+
+@keyframes np-damage-float {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  30%  { transform: translateY(-12px) scale(1.1); opacity: 1; }
+  100% { transform: translateY(-30px) scale(1); opacity: 0; }
+}
+
+.attack-flash {
+  animation: np-damage-float 0.9s ease-out forwards;
+}
 
 /* Wave transition flash */
 @keyframes wave-flash {
