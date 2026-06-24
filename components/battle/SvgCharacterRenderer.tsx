@@ -6,7 +6,7 @@ import React from 'react'
    Replaces old PixelArt placeholders with detailed BF-style chibi
    ═══════════════════════════════════════════════════════════════ */
 
-export type CharacterClass = 'knight' | 'mage' | 'archer'
+export type CharacterClass = 'knight' | 'mage' | 'archer' | 'healer'
 export type CharacterElement = 'fire' | 'ice' | 'wind' | 'earth' | 'light' | 'dark'
 
 export interface SvgCharacterRendererProps {
@@ -26,6 +26,13 @@ const ELEM_COLORS: Record<CharacterElement, { primary: string; glow: string; aur
   earth: { primary: '#a16207', glow: '#eab308', aura: 'rgba(161,98,7,0.35)' },
   light: { primary: '#fbbf24', glow: '#fef08a', aura: 'rgba(251,191,36,0.35)' },
   dark:  { primary: '#7c3aed', glow: '#a78bfa', aura: 'rgba(124,58,237,0.35)' },
+}
+
+// Healer-specific aura — bright gold/white with static sparkle
+const HEALER_AURA_COLORS = {
+  primary: '#facc15',
+  glow: '#fef9c3',
+  aura: 'rgba(250,204,21,0.4)',
 }
 
 const ELEMENT_EMOJI: Record<CharacterElement, string> = {
@@ -152,6 +159,57 @@ function ArcherSVG({ colors }: { colors: typeof ELEM_COLORS.fire }) {
   )
 }
 
+function HealerSVG({ colors }: { colors: { primary: string; glow: string; aura: string } }) {
+  return (
+    <g transform="translate(16, 8)">
+      {/* White-gold hooded robe body */}
+      <path d="M30 38 Q28 50 24 88 L56 88 Q52 50 50 38 Z" fill="#fefce8" stroke="#fbbf24" strokeWidth="1"/>
+      {/* Robe inner layer */}
+      <path d="M33 40 Q32 50 28 82 L52 82 Q48 50 47 40 Z" fill="#fef9c3"/>
+      {/* Gold trim hem */}
+      <path d="M24 86 Q40 90 56 86" stroke="#f59e0b" strokeWidth="2" fill="none"/>
+      {/* Belt with holy symbol */}
+      <rect x="32" y="52" width="16" height="3" rx="1" fill="#f59e0b"/>
+      <circle cx="40" cy="53.5" r="3" fill="#facc15" stroke="#f59e0b" strokeWidth="1"/>
+      {/* Cross/star on belt */}
+      <line x1="40" y1="51" x2="40" y2="56" stroke="#fff" strokeWidth="0.8"/>
+      <line x1="38" y1="53.5" x2="42" y2="53.5" stroke="#fff" strokeWidth="0.8"/>
+      {/* Hood */}
+      <path d="M28 16 Q40 4 52 16 L52 36 Q40 40 28 36 Z" fill="#fefce8" stroke="#fbbf24" strokeWidth="1"/>
+      {/* Face — gentle */}
+      <ellipse cx="40" cy="28" rx="8" ry="9" fill="#fef3c7"/>
+      {/* Eyes — kind */}
+      <ellipse cx="37" cy="27" rx="1.5" ry="1" fill="#92400e"/>
+      <ellipse cx="43" cy="27" rx="1.5" ry="1" fill="#92400e"/>
+      <circle cx="37.5" cy="26.5" r="0.5" fill="#fff"/>
+      <circle cx="43.5" cy="26.5" r="0.5" fill="#fff"/>
+      {/* Gentle smile */}
+      <path d="M38 31 Q40 33 42 31" fill="none" stroke="#92400e" strokeWidth="0.6"/>
+      {/* Sacred Staff — tall with cross/star crystal top */}
+      <rect x="58" y="8" width="3" height="74" rx="1" fill="#f59e0b" stroke="#d97706" strokeWidth="0.5"/>
+      {/* Crystal orb */}
+      <circle cx="59.5" cy="10" r="6" fill="none" stroke="#fef08a" strokeWidth="1.5" opacity="0.8"/>
+      <circle cx="59.5" cy="10" r="4" fill="#fef08a" opacity="0.5"/>
+      {/* Cross ornament on staff top */}
+      <line x1="59.5" y1="4" x2="59.5" y2="16" stroke="#fff" strokeWidth="1.2"/>
+      <line x1="53.5" y1="10" x2="65.5" y2="10" stroke="#fff" strokeWidth="1.2"/>
+      {/* Four small sparkle dots around crystal */}
+      <circle cx="53" cy="4" r="0.8" fill="#fef9c3" opacity="0.9"/>
+      <circle cx="66" cy="4" r="0.8" fill="#fef9c3" opacity="0.9"/>
+      <circle cx="53" cy="16" r="0.8" fill="#fef9c3" opacity="0.9"/>
+      <circle cx="66" cy="16" r="0.8" fill="#fef9c3" opacity="0.9"/>
+      {/* Holy glow around staff */}
+      <circle cx="59.5" cy="10" r="10" fill={colors.primary} opacity="0.15"/>
+      {/* Cape drape */}
+      <path d="M30 40 Q26 50 20 70" fill="none" stroke="#fde68a" strokeWidth="1.5" opacity="0.5"/>
+      <path d="M50 40 Q54 50 60 70" fill="none" stroke="#fde68a" strokeWidth="1.5" opacity="0.5"/>
+      {/* Boots */}
+      <rect x="28" y="84" width="10" height="6" rx="3" fill="#f59e0b"/>
+      <rect x="42" y="84" width="10" height="6" rx="3" fill="#f59e0b"/>
+    </g>
+  )
+}
+
 // Element ring aura under the character's feet
 function ElementAura({ colors, size }: { colors: typeof ELEM_COLORS.fire; size: number }) {
   const cx = size / 2
@@ -185,6 +243,7 @@ export default function SvgCharacterRenderer({
 
   const ClassComponent = classType === 'knight' ? KnightSVG
     : classType === 'mage' ? MageSVG
+    : classType === 'healer' ? HealerSVG
     : ArcherSVG
 
   return (
@@ -199,11 +258,11 @@ export default function SvgCharacterRenderer({
       } ${className}`}
       style={{ imageRendering: 'auto' }}
     >
-      {/* Element aura at feet */}
-      {!isDead && <ElementAura colors={colors} size={size} />}
+      {/* Element aura at feet — healer uses bright gold/white aura */}
+      {!isDead && <ElementAura colors={classType === 'healer' ? HEALER_AURA_COLORS as any : colors} size={size} />}
 
-      {/* Character */}
-      <ClassComponent colors={colors} />
+      {/* Character — healer always gets gold/white colors */}
+      <ClassComponent colors={classType === 'healer' ? HEALER_AURA_COLORS : colors} />
 
       {/* Element badge (top-right corner) */}
       <g transform={`translate(${size - 18}, 2)`}>

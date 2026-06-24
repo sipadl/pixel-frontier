@@ -11,11 +11,14 @@ const monsters = monstersRaw as MonsterDef[]
 const stages = stagesRaw as StageDef[]
 
 // ===== TYPES =====
+export type UnitRole = 'knight' | 'mage' | 'archer' | 'healer'
+
 export interface UnitDef {
   id: number
   name: string
   rarity: 3 | 4 | 5
   element: 'fire' | 'ice' | 'wind' | 'earth' | 'light' | 'dark'
+  role: UnitRole
   hp: number
   atk: number
   def: number
@@ -98,6 +101,7 @@ export interface BattleSquadMember {
   unitId: number
   name: string
   element: string
+  role: UnitRole
   hp: number
   maxHp: number
   atk: number
@@ -170,6 +174,10 @@ export interface GameState {
   damagePopups: DamagePopup[]
   autoBattle: boolean
 
+  // Role-based buffs
+  squadDefBuff: boolean
+  defBuffTurns: number
+
   // Legacy compat (kept for routing — page.tsx checks gameOver)
   gameOver: { won: boolean; wave: number } | null
   showResult: { won: boolean; rewards: { gold: number; gems: number; exp: number } } | null
@@ -193,6 +201,7 @@ export interface GameState {
   // Battle actions (new state machine)
   startBattle: (stageId: number) => boolean
   triggerUnitAttack: (instanceId: string) => void
+  triggerBraveBurst: (instanceId: string) => void
   executeEnemyTurn: () => void
   checkWaveCompletion: () => void
   resetBattleForRetry: () => void
@@ -279,6 +288,8 @@ const defaultState = {
   battleLog: [] as string[],
   damagePopups: [] as DamagePopup[],
   autoBattle: false,
+  squadDefBuff: false,
+  defBuffTurns: 0,
 
   // Legacy compat
   gameOver: null as { won: boolean; wave: number } | null,
@@ -495,7 +506,7 @@ export const useGameStore = create<GameState>()(
               instanceId: '',
               unitId: 0,
               name: '—',
-              element: 'fire',
+              element: 'fire', role: 'knight',
               hp: 0, maxHp: 0, atk: 0, def: 0,
               bbGauge: 0, bbName: '', isAlive: false,
             })
@@ -507,7 +518,7 @@ export const useGameStore = create<GameState>()(
               instanceId: instId,
               unitId: 0,
               name: '—',
-              element: 'fire',
+              element: 'fire', role: 'knight',
               hp: 0, maxHp: 0, atk: 0, def: 0,
               bbGauge: 0, bbName: '', isAlive: false,
             })
@@ -520,6 +531,7 @@ export const useGameStore = create<GameState>()(
             unitId: def.id,
             name: def.name,
             element: def.element,
+            role: def.role,
             hp: inst.hp,
             maxHp: inst.maxHp,
             atk: def.atk,
@@ -533,7 +545,7 @@ export const useGameStore = create<GameState>()(
         // Ensure exactly 6 slots
         while (battleSquad.length < 6) {
           battleSquad.push({
-            instanceId: '', unitId: 0, name: '—', element: 'fire',
+            instanceId: '', unitId: 0, name: '—', element: 'fire', role: 'knight',
             hp: 0, maxHp: 0, atk: 0, def: 0, bbGauge: 0, bbName: '', isAlive: false,
           })
         }
@@ -556,6 +568,8 @@ export const useGameStore = create<GameState>()(
           battleLog: [`⚔️ Stage ${stageId}: ${stage.name}`, `🌊 Wave 1/${stage.waves}: ${wave1.length} enemy(ies)`],
           damagePopups: [],
           autoBattle: false,
+          squadDefBuff: false,
+          defBuffTurns: 0,
           gameOver: null,
           showResult: null,
         })
@@ -645,54 +659,129 @@ export const useGameStore = create<GameState>()(
         }, ANIM_DELAY)
       },
 
-      // Brave burst variant (called from UI when BB full)
-      braveBurst: (squadIdx, enemyIdx) => {
+      // ╔══════════════════════════════════════════════════════╗
+      // ║  ROLE-BASED BRAVE BURST — triggerBraveBurst         ║
+      // ╚══════════════════════════════════════════════════════╝
+      triggerBraveBurst: (instanceId) => {
         const s = get()
         if (s.battleState !== 'PLAYER_TURN') return
 
-        const hero = s.battleSquadState[squadIdx]
-        if (!hero || !hero.isAlive || hero.bbGauge < 100) return
-
-        const enemy = s.enemyWave[enemyIdx]
-        if (!enemy || !enemy.isAlive) return
+        const heroIdx = s.battleSquadState.findIndex(m => m.instanceId === instanceId)
+        if (heroIdx === -1) return
+        const hero = s.battleSquadState[heroIdx]
+        if (!hero.isAlive || hero.bbGauge < 100) return
 
         set({ battleState: 'ANIMATION_PLAYING' })
 
         const def = findUnit(hero.unitId)
         if (!def) return
 
-        // Multi-hit BB
-        let totalDmg = 0
-        let newEnemyHp = enemy.hp
-        for (let i = 0; i < def.bb.hits; i++) {
-          const hitDmg = Math.floor(def.atk * def.bb.mult * (0.9 + Math.random() * 0.2))
-          totalDmg += hitDmg
-          newEnemyHp = Math.max(0, newEnemyHp - hitDmg)
-        }
-        const actualDmg = enemy.hp - newEnemyHp
-
-        const newEnemyWave = [...s.enemyWave]
-        newEnemyWave[enemyIdx] = { ...enemy, hp: newEnemyHp, isAlive: newEnemyHp > 0 }
-
         const newSquad = [...s.battleSquadState]
-        newSquad[squadIdx] = { ...newSquad[squadIdx], bbGauge: 0 }
+        const newEnemyWave = [...s.enemyWave]
+        const newLog = [...s.battleLog.slice(-14)]
+
+        switch (hero.role) {
+          // ── MAGE: AOE — hit ALL enemies ──
+          case 'mage': {
+            let totalAoeDmg = 0
+            for (let i = 0; i < newEnemyWave.length; i++) {
+              const e = newEnemyWave[i]
+              if (!e.isAlive) continue
+              const elemMultVal = elemMult(hero.element, e.element)
+              let waveDmg = 0
+              for (let h = 0; h < def.bb.hits; h++) {
+                const hit = Math.floor(def.atk * def.bb.mult * (0.9 + Math.random() * 0.2) * elemMultVal)
+                waveDmg += hit
+              }
+              const actualDmg = Math.min(e.hp, waveDmg)
+              newEnemyWave[i] = { ...e, hp: Math.max(0, e.hp - waveDmg), isAlive: (e.hp - waveDmg) > 0 }
+              totalAoeDmg += actualDmg
+              get().addDamagePopup({ amount: actualDmg, type: 'crit', targetIdx: i, targetSide: 'enemy' })
+            }
+            newLog.push(`💥 ${def.bb.name} (AOE)! ${totalAoeDmg} total dmg to all enemies`)
+            break
+          }
+
+          // ── HEALER: heal ALL squad members 50% Max HP ──
+          case 'healer': {
+            let totalHealed = 0
+            for (let i = 0; i < newSquad.length; i++) {
+              const m = newSquad[i]
+              if (!m.isAlive || m.hp <= 0) continue
+              const healAmt = Math.floor(m.maxHp * 0.5)
+              const actualHeal = Math.min(healAmt, m.maxHp - m.hp)
+              if (actualHeal > 0) {
+                newSquad[i] = { ...m, hp: Math.min(m.maxHp, m.hp + healAmt) }
+                totalHealed += actualHeal
+                get().addDamagePopup({ amount: actualHeal, type: 'heal', targetIdx: i, targetSide: 'hero' })
+              }
+            }
+            newLog.push(`✨ ${def.bb.name}! Healed squad for ${totalHealed} HP`)
+            break
+          }
+
+          // ── KNIGHT: buff squadDefBuff for 2 turns ──
+          case 'knight': {
+            // Also deal single-target damage
+            const targetIdx = newEnemyWave.findIndex(e => e.isAlive)
+            if (targetIdx !== -1) {
+              const e = newEnemyWave[targetIdx]
+              let hitDmg = 0
+              for (let h = 0; h < def.bb.hits; h++) {
+                hitDmg += Math.floor(def.atk * def.bb.mult * (0.9 + Math.random() * 0.2))
+              }
+              newEnemyWave[targetIdx] = { ...e, hp: Math.max(0, e.hp - hitDmg), isAlive: (e.hp - hitDmg) > 0 }
+              get().addDamagePopup({ amount: hitDmg, type: 'crit', targetIdx, targetSide: 'enemy' })
+            }
+            // Set defense buff
+            set({ squadDefBuff: true, defBuffTurns: 2 })
+            newLog.push(`🛡️ ${def.bb.name}! DEF buff active for 2 turns (-30% dmg)`)
+            break
+          }
+
+          // ── ARCHER: 10-hit spark barrage on single target ──
+          case 'archer': {
+            const targetIdx = newEnemyWave.findIndex(e => e.isAlive)
+            if (targetIdx === -1) break
+            const e = newEnemyWave[targetIdx]
+            let totalDmg = 0
+            const ARCHER_BB_HITS = 10
+            for (let h = 0; h < ARCHER_BB_HITS; h++) {
+              const hit = Math.floor(def.atk * def.bb.mult * (0.9 + Math.random() * 0.2) / 2)
+              totalDmg += hit
+            }
+            const actualDmg = Math.min(e.hp, totalDmg)
+            newEnemyWave[targetIdx] = { ...e, hp: Math.max(0, e.hp - totalDmg), isAlive: (e.hp - totalDmg) > 0 }
+            get().addDamagePopup({ amount: actualDmg, type: 'crit', targetIdx, targetSide: 'enemy' })
+            newLog.push(`🏹 ${def.bb.name}! ${ARCHER_BB_HITS} hits, ${actualDmg} total dmg`)
+            break
+          }
+
+          default:
+            break
+        }
+
+        // Drain BB gauge
+        newSquad[heroIdx] = { ...newSquad[heroIdx], bbGauge: 0 }
 
         set({
           battleSquadState: newSquad,
           enemyWave: newEnemyWave,
-          battleLog: [...s.battleLog.slice(-14), `💥 ${def.bb.name}! ${actualDmg} dmg to ${enemy.name}`],
-        })
-
-        get().addDamagePopup({
-          amount: actualDmg,
-          type: 'crit',
-          targetIdx: enemyIdx,
-          targetSide: 'enemy',
+          battleLog: newLog,
         })
 
         setTimeout(() => {
           get().checkWaveCompletion()
         }, ANIM_DELAY)
+      },
+
+      // Legacy compat bridge — maps squadIdx/enemyIdx to new system
+      braveBurst: (squadIdx, _enemyIdx) => {
+        const s = get()
+        if (s.battleState !== 'PLAYER_TURN') return
+        const member = s.battleSquadState[squadIdx]
+        if (!member || !member.isAlive) return
+        get().triggerBraveBurst(member.instanceId)
       },
 
       // ─── 3. executeEnemyTurn ───────────────────────────────
@@ -704,6 +793,9 @@ export const useGameStore = create<GameState>()(
         const newSquad = [...s.battleSquadState]
         let totalDmg = 0
         const popups: Array<Omit<DamagePopup, 'id' | 'ts'>> = []
+
+        // Def buff multiplier: -30% incoming damage if active
+        const defMult = s.squadDefBuff ? 0.7 : 1.0
 
         // Each alive enemy picks a random alive hero and attacks
         for (const enemy of aliveEnemies) {
@@ -717,7 +809,7 @@ export const useGameStore = create<GameState>()(
 
           const variance = 0.85 + Math.random() * 0.3
           const elemDmgMult = elemMult(enemy.element, target.element)
-          const rawDmg = Math.max(1, Math.floor((enemy.atk * variance - target.def * 0.3) * elemDmgMult))
+          const rawDmg = Math.max(1, Math.floor((enemy.atk * variance - target.def * 0.3) * elemDmgMult * defMult))
           const newHp = Math.max(0, target.hp - rawDmg)
           totalDmg += rawDmg
 
@@ -736,13 +828,27 @@ export const useGameStore = create<GameState>()(
           get().addDamagePopup(p as Omit<DamagePopup, 'id' | 'ts'>)
         }
 
-        const logMsg = aliveEnemies.length > 0
-          ? `👹 Enemies attack! ${totalDmg} total dmg`
-          : ''
+        const logParts: string[] = []
+        if (aliveEnemies.length > 0) logParts.push(`👹 Enemies attack! ${totalDmg} total dmg`)
+        if (s.squadDefBuff) logParts.push('🛡️ DEF buff active (-30%)')
+
+        // Decrement def buff counter
+        let newDefBuff = s.squadDefBuff
+        let newDefBuffTurns = s.defBuffTurns
+        if (s.squadDefBuff) {
+          newDefBuffTurns--
+          if (newDefBuffTurns <= 0) {
+            newDefBuff = false
+            newDefBuffTurns = 0
+            logParts.push('🛡️ DEF buff expired')
+          }
+        }
 
         set({
           battleSquadState: newSquad,
-          battleLog: logMsg ? [...s.battleLog.slice(-14), logMsg] : s.battleLog,
+          battleLog: logParts.length > 0 ? [...s.battleLog.slice(-14), ...logParts] : s.battleLog,
+          squadDefBuff: newDefBuff,
+          defBuffTurns: newDefBuffTurns,
         })
 
         // Check squad wipe
