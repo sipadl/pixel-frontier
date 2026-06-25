@@ -354,7 +354,8 @@ export default function BattleScreen() {
                   isAttacking={attackingUnitId === member.instanceId}
                   isBeingAttacked={flashTargetId === member.instanceId}
                   isDead={false}
-                  className={setClassName(`flex items-center gap-1 ${member.role === 'healer' ? 'absolute bottom-0 inset-x-2 h-2 w-full items-center absolute bottom-0' : 'absolute bottom-[2px] inset-x-2 h-2 w-4'}`)}
+                  className={`flex items-center gap-1 ${member.role === 'healer' ? 'absolute bottom-0 inset-x-2 h-2 w-full items-center' : 'absolute bottom-[2px] inset-x-2 h-2 w-4'}`}
+                />
                 <div className="absolute bottom-0 inset-x-1 h-1 bg-gray-900 rounded-full overflow-hidden">
                   <div className={`h-full rounded-full ${(member.hp / member.maxHp) > 0.5 ? 'bg-green-500' : (member.hp / member.maxHp) > 0.25 ? 'bg-yellow-500' : 'bg-red-500'}`}
                     style={{ width: `${(member.hp / member.maxHp) * 100}%` }} />
