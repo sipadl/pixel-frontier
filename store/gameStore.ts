@@ -261,6 +261,32 @@ function pickGachaUnit(): UnitDef {
   return pool[Math.floor(Math.random() * pool.length)]
 }
 
+// ===== STARTER UNITS =====
+function createStarterState() {
+  const units = [
+    { id: 101, instId: 'starter_knight_1' },
+    { id: 105, instId: 'starter_healer_1' },
+    { id: 103, instId: 'starter_archer_1' },
+  ]
+  const unlocked: Record<number, { count: number; level: number }> = {}
+  const instances: Record<string, UnitInstance> = {}
+  const squad: (string | null)[] = [null, null, null, null, null, null]
+  units.forEach((u, i) => {
+    const def = (unitsRaw as UnitDef[]).find(x => x.id === u.id)
+    if (def) {
+      unlocked[u.id] = { count: 1, level: 1 }
+      instances[u.instId] = {
+        instanceId: u.instId, unitId: u.id,
+        hp: def.hp, maxHp: def.hp, bbGauge: 0, isAlive: true,
+      }
+      squad[i] = u.instId
+    }
+  })
+  return { unlocked, instances, squad }
+}
+
+const _starter = createStarterState()
+
 // ===== DEFAULT STATE =====
 const defaultState = {
   gems: 50,
@@ -271,11 +297,11 @@ const defaultState = {
   exp: 0,
   expToNext: 50,
 
-  unlockedUnits: {} as Record<number, { count: number; level: number }>,
+  unlockedUnits: _starter.unlocked,
   materials: {} as Record<number, number>,
 
-  currentSquad: [null, null, null, null, null, null] as (string | null)[],
-  squadInstances: {} as Record<string, UnitInstance>,
+  currentSquad: _starter.squad,
+  squadInstances: _starter.instances,
 
   screen: 'town' as Screen,
 
