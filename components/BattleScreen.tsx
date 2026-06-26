@@ -53,9 +53,18 @@ function TurnBanner({ battleState, wave, totalWaves }: { battleState: BattleStat
     ''
 
   return (
-    <div className="absolute inset-x-0 top-[30%] z-30 flex justify-center pointer-events-none">
-      <div className="animate-turn-banner font-pixel text-sm text-white px-6 py-2 bg-black/70 border border-yellow-500/50 rounded-lg backdrop-blur-sm">
-        {label || `🌊 Wave ${wave}/${totalWaves}`}
+    <div className="absolute inset-x-0 top-[28%] z-30 flex justify-center pointer-events-none">
+      <div className="animate-turn-banner relative px-8 py-2.5 font-pixel text-sm text-yellow-200 backdrop-blur-sm"
+        style={{
+          background: 'linear-gradient(135deg, rgba(10,14,39,0.92), rgba(15,20,45,0.95))',
+          boxShadow: '0 0 30px rgba(250,204,21,0.2), inset 0 0 20px rgba(0,0,0,0.5)',
+        }}>
+        {/* Gold border corners */}
+        <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-yellow-500/80 rounded-tl" />
+        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-yellow-500/80 rounded-tr" />
+        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-yellow-500/80 rounded-bl" />
+        <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-yellow-500/80 rounded-br" />
+        <span className="drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]">{label || `🌊 Wave ${wave}/${totalWaves}`}</span>
       </div>
     </div>
   )
@@ -92,12 +101,26 @@ function UnitPortrait({
     <button
       disabled={!isPlayerTurn}
       onClick={onAttack}
-      className={`aspect-square rounded-lg border-2 flex flex-col items-center justify-center p-1 transition-all duration-200 ${
+      className={`relative overflow-hidden aspect-square rounded-xl border-2 flex flex-col items-center justify-center p-1 transition-all duration-200 ${
         isPlayerTurn
-          ? 'bg-gradient-to-b from-slate-800 to-slate-900 border-cyan-600/60 active:scale-95 active:border-cyan-400 shadow-lg shadow-cyan-900/20'
-          : 'bg-slate-900/60 border-slate-700/40 pointer-events-none opacity-60'
+          ? 'active:scale-95'
+          : 'pointer-events-none'
       }`}
+      style={{
+        borderColor: isPlayerTurn ? 'rgba(250,204,21,0.6)' : 'rgba(75,85,99,0.3)',
+        background: isPlayerTurn
+          ? 'linear-gradient(180deg, rgba(15,25,50,0.95), rgba(10,14,39,0.98))'
+          : 'linear-gradient(180deg, rgba(10,14,39,0.5), rgba(5,8,20,0.6))',
+        boxShadow: isPlayerTurn
+          ? '0 0 20px rgba(250,204,21,0.15), inset 0 1px 0 rgba(250,204,21,0.15)'
+          : 'none',
+      }}
     >
+      {/* Corner accents */}
+      <div className="absolute top-0 left-0 w-2 h-2 border-t border-l" style={{ borderColor: isPlayerTurn ? 'rgba(250,204,21,0.4)' : 'rgba(75,85,99,0.2)' }} />
+      <div className="absolute top-0 right-0 w-2 h-2 border-t border-r" style={{ borderColor: isPlayerTurn ? 'rgba(250,204,21,0.4)' : 'rgba(75,85,99,0.2)' }} />
+      <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l" style={{ borderColor: isPlayerTurn ? 'rgba(250,204,21,0.4)' : 'rgba(75,85,99,0.2)' }} />
+      <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r" style={{ borderColor: isPlayerTurn ? 'rgba(250,204,21,0.4)' : 'rgba(75,85,99,0.2)' }} />
       {/* Mini character preview */}
       <div className="w-8 h-8 flex items-center justify-center">
         <SvgCharacterRenderer
@@ -113,14 +136,16 @@ function UnitPortrait({
         {ELEM_EMOJI[member.element] || ''} {member.name}
       </span>
 
-      {/* HP bar */}
-      <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden mt-0.5">
-        <div className={`h-full ${hpColor} rounded-full transition-all duration-300`} style={{ width: `${hpPct}%` }} />
+      {/* HP bar — ornate */}
+      <div className="w-full h-1.5 bg-black/60 rounded-full overflow-hidden mt-0.5 border border-white/10 shadow-inner">
+        <div className={`h-full ${hpColor} rounded-full transition-all duration-300`}
+          style={{ width: `${hpPct}%`, boxShadow: '0 0 4px rgba(34,197,94,0.3)' }} />
       </div>
 
-      {/* BB bar */}
-      <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden mt-0.5">
-        <div className="h-full bg-purple-500 rounded-full transition-all" style={{ width: `${member.bbGauge}%` }} />
+      {/* BB bar — ornate */}
+      <div className="w-full h-1 bg-black/60 rounded-full overflow-hidden mt-0.5 border border-white/5 shadow-inner">
+        <div className="h-full bg-gradient-to-r from-purple-700 to-purple-400 rounded-full transition-all"
+          style={{ width: `${member.bbGauge}%`, boxShadow: '0 0 4px rgba(168,85,247,0.3)' }} />
       </div>
 
       {/* BB READY badge */}
@@ -336,11 +361,20 @@ export default function BattleScreen() {
           <div className="battle-bg-ground" />
         </div>
 
-        {/* Wave indicator */}
-        <div className="absolute top-1 inset-x-0 z-20 text-center">
-          <span className="font-pixel text-[7px] text-slate-400 bg-black/50 px-3 py-0.5 rounded-full border border-slate-700/50">
-            Wave {currentWave}/{totalWaves}
-          </span>
+        {/* Wave indicator — ornate badge */}
+        <div className="absolute top-2 inset-x-0 z-20 flex justify-center">
+          <div className="px-4 py-1 font-pixel text-[7px] text-yellow-300 backdrop-blur-sm"
+            style={{
+              background: 'linear-gradient(135deg, rgba(10,14,39,0.9), rgba(15,20,45,0.95))',
+              boxShadow: '0 0 15px rgba(250,204,21,0.15), inset 0 1px 0 rgba(250,204,21,0.15)',
+              border: '1px solid rgba(250,204,21,0.25)',
+            }}>
+            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-yellow-500/40" />
+            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-yellow-500/40" />
+            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-yellow-500/40" />
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-yellow-500/40" />
+            🌊 Wave {currentWave}/{totalWaves}
+          </div>
         </div>
 
         {/* ── Squad Formation: diagonal left-bottom ── */}
