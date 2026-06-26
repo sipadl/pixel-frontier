@@ -1,8 +1,7 @@
 'use client'
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { useGameStore, type BattleSquadMember, type EnemyWaveMember, type BattleState } from '@/store/gameStore'
-import SvgCharacterRenderer from '@/components/battle/SvgCharacterRenderer'
-import GachaBorder from '@/components/ui/GachaBorder'
+import CharacterSprite from '@/components/CharacterSprite'
 import stagesRaw from '@/game/data/stages.json'
 
 const allStages = stagesRaw as { id: number; name: string; waves: number; energy: number; boss: boolean; bg: string }[]
@@ -11,15 +10,11 @@ const ELEM_EMOJI: Record<string, string> = {
   fire: '🔥', ice: '❄️', wind: '💨', earth: '🌿', light: '✨', dark: '🌑',
 }
 
-// Map role → SvgCharacterRenderer classType
-function roleToClass(role: string): 'knight' | 'mage' | 'archer' | 'healer' {
-  if (role === 'healer') return 'healer'
-  if (role === 'mage') return 'mage'
-  if (role === 'archer') return 'archer'
-  return 'knight'
+const ROLE_MAP: Record<string, string> = {
+  warrior: 'knight', knight: 'knight', mage: 'mage', archer: 'archer',
+  cleric: 'healer', healer: 'healer', guardian: 'guardian', rogue: 'rogue',
 }
 
-// Battle BG theme from stage
 function bgThemeClass(stageId: number | null): string {
   if (!stageId) return ''
   if (stageId <= 2) return 'battle-bg-forest'
@@ -32,12 +27,26 @@ function bgThemeClass(stageId: number | null): string {
   return 'battle-bg-cave'
 }
 
-// ──────────────────────────────────────────────────────────────
-// TURN BANNER — shows PLAYER TURN / ENEMY TURN / WAVE X
-// ──────────────────────────────────────────────────────────────
+// ── GOLD ORNAMENTAL BORDER (replaces GachaBorder) ──
+function GoldFrame({ className = '', children }: { className?: string; children: React.ReactNode }) {
+  return (
+    <div className={`relative ${className}`}>
+      <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-yellow-600 via-amber-400 to-yellow-600 opacity-50 blur-[2px] pointer-events-none" />
+      <div className="relative rounded-xl border-2 bg-slate-900/95 backdrop-blur-sm p-4"
+        style={{ borderColor: 'rgba(217,161,50,0.6)', boxShadow: '0 0 20px rgba(217,161,50,0.2)' }}>
+        {children}
+      </div>
+      {/* Corner rivets */}
+      {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map((pos, i) => (
+        <div key={i} className={`absolute ${pos} w-2.5 h-2.5 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-600 shadow-[0_0_4px_rgba(217,161,50,0.6)]`} />
+      ))}
+    </div>
+  )
+}
+
+// ── TURN BANNER ──
 function TurnBanner({ battleState, wave, totalWaves }: { battleState: BattleState; wave: number; totalWaves: number }) {
   const [show, setShow] = useState(true)
-
   useEffect(() => {
     setShow(true)
     const t = setTimeout(() => setShow(false), 1200)
@@ -45,50 +54,42 @@ function TurnBanner({ battleState, wave, totalWaves }: { battleState: BattleStat
   }, [battleState, wave])
 
   if (!show) return null
-
   const label =
     battleState === 'ENEMY_TURN' ? '⚡ ENEMY TURN' :
     battleState === 'PLAYER_TURN' ? '⚔️ YOUR TURN' :
-    battleState === 'ANIMATION_PLAYING' ? '' :
-    ''
+    `🌊 Wave ${wave}/${totalWaves}`
 
   return (
     <div className="absolute inset-x-0 top-[28%] z-30 flex justify-center pointer-events-none">
-      <div className="animate-turn-banner relative px-8 py-2.5 font-pixel text-sm text-yellow-200 backdrop-blur-sm"
+      <div className="animate-turn-banner relative px-10 py-3 font-pixel text-base text-yellow-200 backdrop-blur-sm"
         style={{
           background: 'linear-gradient(135deg, rgba(10,14,39,0.92), rgba(15,20,45,0.95))',
           boxShadow: '0 0 30px rgba(250,204,21,0.2), inset 0 0 20px rgba(0,0,0,0.5)',
+          border: '1px solid rgba(250,204,21,0.3)',
         }}>
-        {/* Gold border corners */}
         <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-yellow-500/80 rounded-tl" />
         <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-yellow-500/80 rounded-tr" />
         <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-yellow-500/80 rounded-bl" />
         <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-yellow-500/80 rounded-br" />
-        <span className="drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]">{label || `🌊 Wave ${wave}/${totalWaves}`}</span>
+        <span className="drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]">{label}</span>
       </div>
     </div>
   )
 }
 
-// ──────────────────────────────────────────────────────────────
-// UNIT PORTRAIT — used in 2x3 grid
-// ──────────────────────────────────────────────────────────────
+// ── UNIT PORTRAIT — clickable in battle grid ──
 function UnitPortrait({
-  member,
-  onAttack,
-  onBB,
-  isPlayerTurn,
+  member, onAttack, isPlayerTurn,
 }: {
   member: BattleSquadMember
   onAttack: () => void
-  onBB: () => void
   isPlayerTurn: boolean
 }) {
   if (!member.isAlive || member.hp <= 0) {
     return (
-      <div className="aspect-square rounded-lg bg-slate-900/80 border border-slate-700/50 flex flex-col items-center justify-center opacity-30">
-        <span className="text-lg opacity-30">💀</span>
-        <span className="font-pixel text-[5px] text-slate-600 mt-1">DOWN</span>
+      <div className="aspect-square rounded-xl bg-slate-900/80 border-2 border-slate-700/40 flex flex-col items-center justify-center opacity-40">
+        <span className="text-2xl opacity-30">💀</span>
+        <span className="font-pixel text-[9px] text-slate-600 mt-1">DOWN</span>
       </div>
     )
   }
@@ -101,64 +102,50 @@ function UnitPortrait({
     <button
       disabled={!isPlayerTurn}
       onClick={onAttack}
-      className={`relative overflow-hidden aspect-square rounded-xl border-2 flex flex-col items-center justify-center p-1 transition-all duration-200 ${
-        isPlayerTurn
-          ? 'active:scale-95'
-          : 'pointer-events-none'
+      className={`relative overflow-hidden aspect-square rounded-xl border-2 flex flex-col items-center justify-center gap-0.5 p-1.5 transition-all duration-200 ${
+        isPlayerTurn ? 'active:scale-95' : 'pointer-events-none'
       }`}
       style={{
         borderColor: isPlayerTurn ? 'rgba(250,204,21,0.6)' : 'rgba(75,85,99,0.3)',
         background: isPlayerTurn
           ? 'linear-gradient(180deg, rgba(15,25,50,0.95), rgba(10,14,39,0.98))'
           : 'linear-gradient(180deg, rgba(10,14,39,0.5), rgba(5,8,20,0.6))',
-        boxShadow: isPlayerTurn
-          ? '0 0 20px rgba(250,204,21,0.15), inset 0 1px 0 rgba(250,204,21,0.15)'
-          : 'none',
-      }}
-    >
+        boxShadow: isPlayerTurn ? '0 0 16px rgba(250,204,21,0.12)' : 'none',
+      }}>
       {/* Corner accents */}
       <div className="absolute top-0 left-0 w-2 h-2 border-t border-l" style={{ borderColor: isPlayerTurn ? 'rgba(250,204,21,0.4)' : 'rgba(75,85,99,0.2)' }} />
       <div className="absolute top-0 right-0 w-2 h-2 border-t border-r" style={{ borderColor: isPlayerTurn ? 'rgba(250,204,21,0.4)' : 'rgba(75,85,99,0.2)' }} />
       <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l" style={{ borderColor: isPlayerTurn ? 'rgba(250,204,21,0.4)' : 'rgba(75,85,99,0.2)' }} />
       <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r" style={{ borderColor: isPlayerTurn ? 'rgba(250,204,21,0.4)' : 'rgba(75,85,99,0.2)' }} />
-      {/* Mini character preview */}
-      <div className="w-8 h-8 flex items-center justify-center">
-        <SvgCharacterRenderer
-          classType={roleToClass(member.role)}
-          element={member.element as any}
-          size={36}
-          isDead={false}
-        />
-      </div>
+
+      {/* Character sprite */}
+      <CharacterSprite type={ROLE_MAP[member.role] || 'knight'} size={44} />
 
       {/* Name */}
-      <span className="font-pixel text-[4px] text-white truncate w-full text-center mt-0.5">
+      <span className="font-pixel text-[9px] text-white truncate w-full text-center">
         {ELEM_EMOJI[member.element] || ''} {member.name}
       </span>
 
-      {/* HP bar — ornate */}
-      <div className="w-full h-1.5 bg-black/60 rounded-full overflow-hidden mt-0.5 border border-white/10 shadow-inner">
+      {/* HP bar */}
+      <div className="w-full h-2 bg-black/60 rounded-full overflow-hidden border border-white/10 shadow-inner">
         <div className={`h-full ${hpColor} rounded-full transition-all duration-300`}
-          style={{ width: `${hpPct}%`, boxShadow: '0 0 4px rgba(34,197,94,0.3)' }} />
+          style={{ width: `${hpPct}%` }} />
       </div>
 
-      {/* BB bar — ornate */}
-      <div className="w-full h-1 bg-black/60 rounded-full overflow-hidden mt-0.5 border border-white/5 shadow-inner">
+      {/* BB bar */}
+      <div className="w-full h-1.5 bg-black/60 rounded-full overflow-hidden border border-white/5 shadow-inner">
         <div className="h-full bg-gradient-to-r from-purple-700 to-purple-400 rounded-full transition-all"
-          style={{ width: `${member.bbGauge}%`, boxShadow: '0 0 4px rgba(168,85,247,0.3)' }} />
+          style={{ width: `${member.bbGauge}%` }} />
       </div>
 
-      {/* BB READY badge */}
       {bbFull && isPlayerTurn && (
-        <span className="font-pixel text-[4px] text-yellow-400 animate-pulse mt-0.5">BB</span>
+        <span className="font-pixel text-[8px] text-yellow-400 animate-pulse">BB READY</span>
       )}
     </button>
   )
 }
 
-// ──────────────────────────────────────────────────────────────
-// MAIN BATTLE SCREEN
-// ──────────────────────────────────────────────────────────────
+// ── MAIN BATTLE SCREEN ──
 export default function BattleScreen() {
   const battleState = useGameStore(s => s.battleState)
   const currentStage = useGameStore(s => s.currentStage)
@@ -173,15 +160,6 @@ export default function BattleScreen() {
 
   const triggerUnitAttack = useGameStore(s => s.triggerUnitAttack)
   const triggerBraveBurst = useGameStore(s => s.triggerBraveBurst)
-
-  // Player unit attack handler – set flash target for visual hit
-  const handleUnitAttack = (instanceId: string) => {
-    setAttackingUnitId(instanceId)
-    setFlashTargetId(instanceId)
-    // Reset attack animation after short delay
-    setTimeout(() => setAttackingUnitId(null), 300)
-    triggerUnitAttack(instanceId)
-  }
   const toggleAutoBattle = useGameStore(s => s.toggleAutoBattle)
   const startBattle = useGameStore(s => s.startBattle)
   const returnToTown = useGameStore(s => s.returnToTown)
@@ -190,39 +168,36 @@ export default function BattleScreen() {
   const autoTimerRef = useRef<NodeJS.Timeout | null>(null)
   const logEndRef = useRef<HTMLDivElement>(null)
 
-  // Derived
   const isPlayerTurn = battleState === 'PLAYER_TURN'
-  // Attack animation states
   const [attackingUnitId, setAttackingUnitId] = useState<string | null>(null)
   const [flashTargetId, setFlashTargetId] = useState<string | null>(null)
+
+  const handleUnitAttack = (instanceId: string) => {
+    setAttackingUnitId(instanceId)
+    setFlashTargetId(instanceId)
+    setTimeout(() => setAttackingUnitId(null), 300)
+    triggerUnitAttack(instanceId)
+  }
 
   useEffect(() => {
     if (!flashTargetId) return
     const timeout = setTimeout(() => setFlashTargetId(null), 800)
     return () => clearTimeout(timeout)
   }, [flashTargetId])
-  const [enemyAttackingUnitId, setEnemyAttackingUnitId] = useState<string | null>(null)
+
   const aliveSquad = battleSquadState.filter(m => m.isAlive)
   const aliveEnemies = enemyWave.filter(e => e.isAlive)
 
-  // Auto-scroll battle log
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [battleLog.length])
 
-  // ── Auto-battle ──
   const runAutoBattle = useCallback(() => {
     if (!isPlayerTurn || aliveSquad.length === 0 || aliveEnemies.length === 0) return
-
-    // Pick hero with full BB first, else first alive
     const bbHero = aliveSquad.find(h => h.bbGauge >= 100)
     const hero = bbHero || aliveSquad[0]
-
-    if (hero.bbGauge >= 100) {
-      triggerBraveBurst(hero.instanceId)
-    } else {
-      triggerUnitAttack(hero.instanceId)
-    }
+    if (hero.bbGauge >= 100) triggerBraveBurst(hero.instanceId)
+    else triggerUnitAttack(hero.instanceId)
   }, [isPlayerTurn, aliveSquad, aliveEnemies, triggerUnitAttack, triggerBraveBurst])
 
   useEffect(() => {
@@ -237,69 +212,53 @@ export default function BattleScreen() {
   const bgCls = bgThemeClass(currentStage)
   const controlDisabled = battleState !== 'PLAYER_TURN'
 
-  // ── NEXT DUNGEON logic ──
   const handleNextDungeon = () => {
     const nextStageId = (currentStage || 0) + 1
     const nextStage = allStages.find(s => s.id === nextStageId)
-    if (nextStage) {
-      startBattle(nextStageId)
-    } else {
-      returnToTown()
-    }
+    if (nextStage) startBattle(nextStageId)
+    else returnToTown()
   }
 
-  // ═══════════════════════════════════════════════════════════
-  //  REWARD SCREEN OVERLAY
-  // ═══════════════════════════════════════════════════════════
+  // ═══ REWARD SCREEN ═══
   if (battleState === 'REWARD_SCREEN') {
     return (
-      <div className="h-screen overflow-hidden bg-black flex flex-col items-center justify-center">
-        {/* BG glow */}
+      <div className="h-full overflow-hidden bg-black flex flex-col items-center justify-center px-6">
         <div className="absolute inset-0 bg-gradient-to-b from-yellow-900/20 via-transparent to-yellow-900/10 pointer-events-none" />
-
-        {/* Stage Clear text */}
-        <h1 className="font-pixel text-2xl text-yellow-300 mb-2 animate-pulse-glow relative z-10">
+        <h1 className="font-pixel text-3xl text-yellow-300 mb-2 animate-pulse-glow relative z-10"
+          style={{ textShadow: '0 0 20px rgba(250,204,21,0.5)' }}>
           🏆 STAGE CLEAR
         </h1>
-        <p className="font-pixel text-[8px] text-slate-400 mb-8 relative z-10">
+        <p className="font-pixel text-sm text-slate-400 mb-6 relative z-10">
           Wave {totalWaves} complete!
         </p>
-
-        {/* Loot card */}
-        <GachaBorder variant="gold" className="w-64 mb-8 relative z-10">
-          <div className="p-4 space-y-3">
-            <p className="font-pixel text-[8px] text-yellow-300 text-center mb-3">— LOOT —</p>
-            {showResult?.rewards && (
-              <>
-                <div className="flex justify-between items-center font-pixel text-[9px]">
-                  <span className="text-purple-300">💎 Gems</span>
-                  <span className="text-purple-400">+{showResult.rewards.gems}</span>
-                </div>
-                <div className="flex justify-between items-center font-pixel text-[9px]">
-                  <span className="text-yellow-300">🪙 Gold</span>
-                  <span className="text-yellow-400">+{showResult.rewards.gold}</span>
-                </div>
-                <div className="flex justify-between items-center font-pixel text-[9px]">
-                  <span className="text-green-300">✨ EXP</span>
-                  <span className="text-green-400">+{showResult.rewards.exp}</span>
-                </div>
-              </>
-            )}
-          </div>
-        </GachaBorder>
-
-        {/* Action buttons */}
-        <div className="space-y-3 w-64 relative z-10">
-          <button
-            onClick={handleNextDungeon}
-            className="w-full font-pixel text-[10px] py-3 bg-gradient-to-b from-cyan-600 to-cyan-800 border-2 border-cyan-400 rounded-lg text-white active:scale-95 transition-all shadow-lg shadow-cyan-500/30"
-          >
+        <GoldFrame className="w-full max-w-xs mb-6 relative z-10">
+          <p className="font-pixel text-sm text-yellow-300 text-center mb-3">— LOOT —</p>
+          {showResult?.rewards && (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center font-pixel text-sm">
+                <span className="text-purple-300">💎 Gems</span>
+                <span className="text-purple-400">+{showResult.rewards.gems}</span>
+              </div>
+              <div className="flex justify-between items-center font-pixel text-sm">
+                <span className="text-yellow-300">🪙 Gold</span>
+                <span className="text-yellow-400">+{showResult.rewards.gold}</span>
+              </div>
+              <div className="flex justify-between items-center font-pixel text-sm">
+                <span className="text-green-300">✨ EXP</span>
+                <span className="text-green-400">+{showResult.rewards.exp}</span>
+              </div>
+            </div>
+          )}
+        </GoldFrame>
+        <div className="space-y-3 w-full max-w-xs relative z-10">
+          <button onClick={handleNextDungeon}
+            className="w-full font-pixel text-sm py-4 rounded-2xl text-white active:scale-[0.97] transition-all"
+            style={{ background: 'linear-gradient(180deg, #0891b2, #155e75)', boxShadow: '0 4px 20px rgba(8,145,178,0.4)', border: '2px solid rgba(34,211,238,0.4)' }}>
             ⚔️ NEXT DUNGEON
           </button>
-          <button
-            onClick={returnToTown}
-            className="w-full font-pixel text-[10px] py-3 bg-gradient-to-b from-gray-600 to-gray-800 border-2 border-gray-400 rounded-lg text-white active:scale-95 transition-all"
-          >
+          <button onClick={returnToTown}
+            className="w-full font-pixel text-sm py-4 rounded-2xl text-white active:scale-[0.97] transition-all"
+            style={{ background: 'linear-gradient(180deg, #4b5563, #1f2937)', border: '2px solid rgba(156,163,175,0.3)' }}>
             🏠 RETURN TO TOWN
           </button>
         </div>
@@ -307,34 +266,27 @@ export default function BattleScreen() {
     )
   }
 
-  // ═══════════════════════════════════════════════════════════
-  //  GAME OVER OVERLAY
-  // ═══════════════════════════════════════════════════════════
+  // ═══ GAME OVER ═══
   if (battleState === 'GAME_OVER') {
     return (
-      <div className="h-screen overflow-hidden bg-black flex flex-col items-center justify-center">
-        {/* Red vignette */}
+      <div className="h-full overflow-hidden bg-black flex flex-col items-center justify-center px-6">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(127,29,29,0.4)_100%)] pointer-events-none" />
-
-        <h1 className="font-pixel text-2xl text-red-400 mb-2 animate-shake relative z-10">
+        <h1 className="font-pixel text-3xl text-red-400 mb-2 animate-shake relative z-10"
+          style={{ textShadow: '0 0 20px rgba(239,68,68,0.5)' }}>
           💀 SQUAD WIPE
         </h1>
-        <p className="font-pixel text-[8px] text-slate-500 mb-8 relative z-10">
+        <p className="font-pixel text-sm text-slate-500 mb-6 relative z-10">
           All units defeated at Wave {currentWave}/{totalWaves}
         </p>
-
-        {/* Retry / Return buttons — HSR style */}
-        <div className="space-y-3 w-64 relative z-10">
-          <button
-            onClick={resetBattleForRetry}
-            className="w-full font-pixel text-[10px] py-3 bg-gradient-to-b from-yellow-600 to-orange-700 border-2 border-yellow-400 rounded-lg text-white active:scale-95 transition-all shadow-lg shadow-yellow-500/30 animate-pulse-glow"
-          >
+        <div className="space-y-3 w-full max-w-xs relative z-10">
+          <button onClick={resetBattleForRetry}
+            className="w-full font-pixel text-sm py-4 rounded-2xl text-white active:scale-[0.97] transition-all animate-pulse-glow"
+            style={{ background: 'linear-gradient(180deg, #eab308, #c2410c)', boxShadow: '0 4px 20px rgba(234,179,8,0.3)', border: '2px solid rgba(250,204,21,0.5)' }}>
             🔄 RETRY (Free)
           </button>
-          <button
-            onClick={returnToTown}
-            className="w-full font-pixel text-[10px] py-3 bg-gradient-to-b from-gray-600 to-gray-800 border-2 border-gray-400 rounded-lg text-white active:scale-95 transition-all"
-          >
+          <button onClick={returnToTown}
+            className="w-full font-pixel text-sm py-4 rounded-2xl text-white active:scale-[0.97] transition-all"
+            style={{ background: 'linear-gradient(180deg, #4b5563, #1f2937)', border: '2px solid rgba(156,163,175,0.3)' }}>
             🏠 RETURN TO TOWN
           </button>
         </div>
@@ -342,18 +294,14 @@ export default function BattleScreen() {
     )
   }
 
-  // ═══════════════════════════════════════════════════════════
-  //  MAIN BATTLE VIEW (60/40 split)
-  // ═══════════════════════════════════════════════════════════
+  // ═══ MAIN BATTLE VIEW ═══
   return (
-    <div className={`h-screen overflow-hidden bg-slate-950 flex flex-col relative ${bgCls}`}>
-
-      {/* ─── Turn Banner ─── */}
+    <div className={`h-full overflow-hidden bg-slate-950 flex flex-col relative ${bgCls}`}>
       <TurnBanner battleState={battleState} wave={currentWave} totalWaves={totalWaves} />
 
-      {/* ─── TOP: Visual Combat Area (60%) ─── */}
-      <div className="relative h-[60%] overflow-hidden pointer-events-none">
-        {/* Parallax BG */}
+      {/* ── TOP: Combat Area (55%) ── */}
+      <div className="relative h-[55%] overflow-hidden pointer-events-none">
+        {/* BG layers */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="battle-bg-sky absolute inset-0" />
           <div className="battle-stars" />
@@ -361,88 +309,70 @@ export default function BattleScreen() {
           <div className="battle-bg-ground" />
         </div>
 
-        {/* Wave indicator — ornate badge */}
+        {/* Wave badge */}
         <div className="absolute top-2 inset-x-0 z-20 flex justify-center">
-          <div className="px-4 py-1 font-pixel text-[7px] text-yellow-300 backdrop-blur-sm"
+          <div className="px-5 py-1.5 font-pixel text-xs text-yellow-300 backdrop-blur-sm"
             style={{
               background: 'linear-gradient(135deg, rgba(10,14,39,0.9), rgba(15,20,45,0.95))',
-              boxShadow: '0 0 15px rgba(250,204,21,0.15), inset 0 1px 0 rgba(250,204,21,0.15)',
               border: '1px solid rgba(250,204,21,0.25)',
             }}>
-            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-yellow-500/40" />
-            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-yellow-500/40" />
-            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-yellow-500/40" />
-            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-yellow-500/40" />
             🌊 Wave {currentWave}/{totalWaves}
           </div>
         </div>
 
-        {/* ── Squad Formation: diagonal left-bottom ── */}
-        <div className="absolute bottom-[8%] left-[4%] z-10 flex flex-col gap-1">
+        {/* Squad formation — diagonal left-bottom */}
+        <div className="absolute bottom-[8%] left-[4%] z-10 flex flex-col gap-2">
           {aliveSquad.map((member, i) => (
-            <div key={member.instanceId} className="flex items-center gap-1"
-              style={{ transform: `translateX(${i * 6}px)`, opacity: 1 - i * 0.08 }}>
-              <div className="relative">
-                <SvgCharacterRenderer
-                  classType={roleToClass(member.role)}
-                  element={member.element as any}
-                  size={52}
-                  isAttacking={attackingUnitId === member.instanceId}
-                  isBeingAttacked={flashTargetId === member.instanceId}
-                  isDead={false}
-                  className={`flex items-center gap-1 ${member.role === 'healer' ? 'absolute bottom-0 inset-x-2 h-2 w-full items-center' : 'absolute bottom-[2px] inset-x-2 h-2 w-4'}`}
-                />
-                <div className="absolute bottom-0 inset-x-1 h-1 bg-gray-900 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full ${(member.hp / member.maxHp) > 0.5 ? 'bg-green-500' : (member.hp / member.maxHp) > 0.25 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                    style={{ width: `${(member.hp / member.maxHp) * 100}%` }} />
-                </div>
+            <div key={member.instanceId} className="relative"
+              style={{ transform: `translateX(${i * 8}px)` }}>
+              <CharacterSprite
+                type={ROLE_MAP[member.role] || 'knight'}
+                size={56}
+              />
+              {/* HP mini bar */}
+              <div className="absolute bottom-0 inset-x-1 h-1.5 bg-gray-900 rounded-full overflow-hidden border border-white/10">
+                <div className={`h-full rounded-full ${(member.hp / member.maxHp) > 0.5 ? 'bg-green-500' : (member.hp / member.maxHp) > 0.25 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                  style={{ width: `${(member.hp / member.maxHp) * 100}%` }} />
               </div>
+              {member.instanceId === flashTargetId && (
+                <div className="absolute inset-0 bg-white/30 rounded-lg animate-pulse pointer-events-none" />
+              )}
             </div>
           ))}
         </div>
 
-        {/* ── Enemies: diagonal right-top ── */}
-        <div className="absolute top-[15%] right-[4%] z-10 flex flex-col gap-1 items-end">
+        {/* Enemies — diagonal right-top */}
+        <div className="absolute top-[15%] right-[4%] z-10 flex flex-col gap-2 items-end">
           {aliveEnemies.map((enemy, i) => (
-            <div key={enemy.instanceId} className="flex items-center gap-1"
-              style={{ transform: `translateX(${-i * 6}px)`, opacity: 1 - i * 0.08 }}>
+            <div key={enemy.instanceId} className="flex items-center gap-2"
+              style={{ transform: `translateX(${-i * 8}px)` }}>
+              <div className="text-right">
+                <p className="font-pixel text-xs text-red-300">{enemy.name}</p>
+                <p className="font-pixel text-[9px] text-red-400">{enemy.hp}/{enemy.maxHp}</p>
+              </div>
               <div className="relative">
-                {/* Boss = larger */}
                 <div className={enemy.isBoss ? 'scale-125' : ''}>
-                  <SvgCharacterRenderer
-                    classType={enemy.isBoss ? 'knight' : 'mage'}
-                    element="fire"
-                    size={enemy.isBoss ? 64 : 48}
-                  />
+                  <CharacterSprite type={enemy.isBoss ? 'guardian' : 'rogue'} size={enemy.isBoss ? 72 : 52} />
                 </div>
-                {/* HP bar */}
-                <div className="absolute bottom-0 inset-x-1 h-1 bg-gray-900 rounded-full overflow-hidden">
+                <div className="absolute bottom-0 inset-x-1 h-1.5 bg-gray-900 rounded-full overflow-hidden border border-white/10">
                   <div className="h-full bg-red-500 rounded-full transition-all duration-300"
                     style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }} />
                 </div>
-                {/* Boss badge */}
                 {enemy.isBoss && (
-                  <span className="absolute -top-2 -right-1 font-pixel text-[6px] bg-red-900 border border-red-500 rounded px-1 text-red-300">BOSS</span>
+                  <span className="absolute -top-3 -right-1 font-pixel text-[8px] bg-red-900 border border-red-500 rounded px-1.5 py-0.5 text-red-300">
+                    BOSS
+                  </span>
                 )}
-              </div>
-              <div className="text-right">
-                <p className="font-pixel text-[4px] text-red-300">{enemy.name}</p>
-                <p className="font-pixel text-[3px] text-red-400">{enemy.hp}/{enemy.maxHp}</p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* ── Floating Damage Popups ── */}
+        {/* Floating damage popups */}
         {damagePopups.map(popup => (
-          <div
-            key={popup.id}
+          <div key={popup.id}
             className={`damage-number ${popup.type === 'crit' ? 'crit' : popup.type === 'enemy' ? 'enemy-dmg' : popup.type === 'element' ? 'element-weak' : ''}`}
-            style={{
-              left: popup.targetSide === 'enemy' ? '58%' : '22%',
-              top: `${15 + popup.targetIdx * 12}%`,
-            }}
-          >
+            style={{ left: popup.targetSide === 'enemy' ? '58%' : '22%', top: `${15 + popup.targetIdx * 12}%` }}>
             {popup.type === 'enemy' ? '-' : ''}{popup.amount}
             {popup.type === 'crit' && '✦'}
             {popup.type === 'element' && '✦'}
@@ -450,56 +380,47 @@ export default function BattleScreen() {
         ))}
       </div>
 
-      {/* ─── Divider line ─── */}
-      <div className="h-[2px] bg-gradient-to-r from-transparent via-cyan-600 to-transparent" />
+      {/* ── Divider ── */}
+      <div className="h-[2px] bg-gradient-to-r from-transparent via-cyan-600 to-transparent shrink-0" />
 
-      {/* ─── BOTTOM: Control Panel (40%) ─── */}
-      <div className={`relative h-[40%] flex flex-col bg-gradient-to-b from-slate-900 to-slate-950 ${
-        controlDisabled ? 'pointer-events-none opacity-60' : ''
-      }`}>
+      {/* ── BOTTOM: Control Panel (45%) ── */}
+      <div className={`relative h-[45%] flex flex-col bg-gradient-to-b from-slate-900 to-slate-950 shrink-0 ${controlDisabled ? 'pointer-events-none opacity-60' : ''}`}>
 
-        {/* Auto-battle toggle */}
-        <div className="flex justify-center py-1.5">
+        {/* Auto-battle toggle — BIG */}
+        <div className="flex justify-center py-2">
           <button
             disabled={controlDisabled && !autoBattle}
             onClick={toggleAutoBattle}
-            className={`font-pixel text-[6px] px-3 py-1 rounded border transition-all ${
+            className={`font-pixel text-xs px-6 py-2.5 rounded-xl border-2 transition-all active:scale-95 ${
               autoBattle
                 ? 'bg-green-900/60 border-green-500 text-green-300 animate-auto-pulse'
                 : 'bg-slate-800 border-slate-600 text-slate-400'
-            }`}
-          >
+            }`}>
             {autoBattle ? '⚡ AUTO ON' : '⏸ AUTO OFF'}
           </button>
         </div>
 
-        {/* Status bar */}
-        <div className="flex justify-between items-center px-3 py-1">
-          <span className="font-pixel text-[5px] text-slate-500">
-            {isPlayerTurn ? '⚔️ YOUR TURN' : battleState === 'ENEMY_TURN' ? '👹 ENEMY TURN...' : '⏳ PROCESSING...'}
+        {/* Status */}
+        <div className="flex justify-between items-center px-4 py-1">
+          <span className="font-pixel text-xs text-slate-500">
+            {isPlayerTurn ? '⚔️ YOUR TURN' : battleState === 'ENEMY_TURN' ? '👹 ENEMY TURN...' : '⏳ ...'}
           </span>
-          <span className="font-pixel text-[5px] text-slate-500">
+          <span className="font-pixel text-xs text-slate-500">
             {aliveSquad.length} alive / {aliveEnemies.length} enemies
           </span>
         </div>
 
-        {/* 2x3 Unit Portrait Grid */}
+        {/* 2x3 Unit Portrait Grid — BIG */}
         <div className="flex-1 px-3 pb-2">
-          <div className="grid grid-cols-3 gap-2 h-full">
+          <div className="grid grid-cols-3 gap-2.5 h-full">
             {battleSquadState.map((member, idx) => (
               <UnitPortrait
                 key={member.instanceId || `empty-${idx}`}
                 member={member}
                 onAttack={() => {
                   if (!isPlayerTurn) return
-                  if (member.bbGauge >= 100) {
-                    triggerBraveBurst(member.instanceId)
-                  } else {
-                    triggerUnitAttack(member.instanceId)
-                  }
-                }}
-                onBB={() => {
-                  triggerBraveBurst(member.instanceId)
+                  if (member.bbGauge >= 100) triggerBraveBurst(member.instanceId)
+                  else handleUnitAttack(member.instanceId)
                 }}
                 isPlayerTurn={isPlayerTurn}
               />
@@ -507,10 +428,10 @@ export default function BattleScreen() {
           </div>
         </div>
 
-        {/* Mini battle log */}
-        <div className="h-8 overflow-y-auto bg-black/40 mx-2 mb-1 rounded px-2 py-0.5 border border-slate-800/50">
+        {/* Battle log — BIGGER */}
+        <div className="h-12 overflow-y-auto bg-black/40 mx-2 mb-2 rounded-lg px-3 py-1 border border-slate-800/50">
           {battleLog.slice(-3).map((msg, i) => (
-            <p key={i} className="font-pixel text-[4px] text-slate-500 leading-relaxed">{msg}</p>
+            <p key={i} className="font-pixel text-[9px] text-slate-500 leading-relaxed">{msg}</p>
           ))}
           <div ref={logEndRef} />
         </div>
