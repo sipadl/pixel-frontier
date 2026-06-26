@@ -236,6 +236,7 @@ export default function SvgCharacterRenderer({
   element,
   size = 96,
   isAttacking = false,
+  isBeingAttacked = false,
   isDead = false,
   className = '',
 }: SvgCharacterRendererProps) {
