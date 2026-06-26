@@ -146,7 +146,8 @@ export default function BattleScreen() {
   const autoBattle = useGameStore(s => s.autoBattle)
   const showResult = useGameStore(s => s.showResult)
 
-  const triggerUnitAttackAction = useGameStore(s => s.triggerUnitAttack)
+  const triggerUnitAttack = useGameStore(s => s.triggerUnitAttack)
+  const triggerBraveBurst = useGameStore(s => s.triggerBraveBurst)
 
   // Player unit attack handler – set flash target for visual hit
   const handleUnitAttack = (instanceId: string) => {
@@ -154,9 +155,8 @@ export default function BattleScreen() {
     setFlashTargetId(instanceId)
     // Reset attack animation after short delay
     setTimeout(() => setAttackingUnitId(null), 300)
-    triggerUnitAttackAction(instanceId)
+    triggerUnitAttack(instanceId)
   }
-  const triggerBraveBurst = useGameStore(s => s.triggerBraveBurst)
   const toggleAutoBattle = useGameStore(s => s.toggleAutoBattle)
   const startBattle = useGameStore(s => s.startBattle)
   const returnToTown = useGameStore(s => s.returnToTown)
@@ -196,9 +196,9 @@ export default function BattleScreen() {
     if (hero.bbGauge >= 100) {
       triggerBraveBurst(hero.instanceId)
     } else {
-      handleUnitAttack(hero.instanceId)
+      triggerUnitAttack(hero.instanceId)
     }
-  }, [isPlayerTurn, aliveSquad, aliveEnemies, handleUnitAttack, triggerBraveBurst])
+  }, [isPlayerTurn, aliveSquad, aliveEnemies, triggerUnitAttack, triggerBraveBurst])
 
   useEffect(() => {
     if (!autoBattle || !isPlayerTurn || aliveSquad.length === 0 || aliveEnemies.length === 0) {
@@ -356,10 +356,10 @@ export default function BattleScreen() {
                   isAttacking={attackingUnitId === member.instanceId}
                   isBeingAttacked={flashTargetId === member.instanceId}
                   isDead={false}
-                  className={`flex items-center gap-1 ${member.role === 'healer' ? 'absolute bottom-0 inset-x-2 h-2 w-full' : 'absolute bottom-[2px] inset-x-2 h-2 w-4'}`}
+                  className={`flex items-center gap-1 ${member.role === 'healer' ? 'absolute bottom-0 inset-x-2 h-2 w-full items-center' : 'absolute bottom-[2px] inset-x-2 h-2 w-4'}`}
                 />
-                <div className="absolute bottom-0 inset-x-1 h-1 bg-slate-900 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full ${(member.hp / member.maxHp) > 0.5 ? 'bg-emerald-500' : (member.hp / member.maxHp) > 0.25 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                <div className="absolute bottom-0 inset-x-1 h-1 bg-gray-900 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${(member.hp / member.maxHp) > 0.5 ? 'bg-green-500' : (member.hp / member.maxHp) > 0.25 ? 'bg-yellow-500' : 'bg-red-500'}`}
                     style={{ width: `${(member.hp / member.maxHp) * 100}%` }} />
                 </div>
               </div>
@@ -461,7 +461,7 @@ export default function BattleScreen() {
                   if (member.bbGauge >= 100) {
                     triggerBraveBurst(member.instanceId)
                   } else {
-                    handleUnitAttack(member.instanceId)
+                    triggerUnitAttack(member.instanceId)
                   }
                 }}
                 onBB={() => {
