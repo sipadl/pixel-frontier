@@ -146,6 +146,9 @@ export default function BattleScreen() {
   const autoBattle = useGameStore(s => s.autoBattle)
   const showResult = useGameStore(s => s.showResult)
 
+  const triggerUnitAttack = useGameStore(s => s.triggerUnitAttack)
+  const triggerBraveBurst = useGameStore(s => s.triggerBraveBurst)
+
   // Player unit attack handler – set flash target for visual hit
   const handleUnitAttack = (instanceId: string) => {
     setAttackingUnitId(instanceId)
@@ -154,7 +157,6 @@ export default function BattleScreen() {
     setTimeout(() => setAttackingUnitId(null), 300)
     triggerUnitAttack(instanceId)
   }
-  const triggerBraveBurst = useGameStore(s => s.triggerBraveBurst)
   const toggleAutoBattle = useGameStore(s => s.toggleAutoBattle)
   const startBattle = useGameStore(s => s.startBattle)
   const returnToTown = useGameStore(s => s.returnToTown)
