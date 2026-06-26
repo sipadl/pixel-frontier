@@ -247,14 +247,21 @@ export default function SvgCharacterRenderer({
     : classType === 'healer' ? HealerSVG
     : ArcherSVG
 
+  const svgClasses = [
+    'block overflow-visible transition-all duration-300',
+    isDead ? 'grayscale opacity-40' : '',
+    isAttacking ? (isBeingAttacked ? 'animate-lunge-right animate-hit' : 'animate-lunge-right') : (isBeingAttacked ? 'animate-hit' : ''),
+    className,
+  ].filter(Boolean).join(' ')
+
   return (
     <svg
       width={size}
       height={size}
       viewBox={viewBox}
-      className={`block overflow-visible transition-all duration-300 ${\n        isDead ? 'grayscale opacity-40' : ''\n      } ${\n        isAttacking ? (isBeingAttacked ? 'animate-lunge-right animate-hit' : 'animate-lunge-right') : (isBeingAttacked ? 'animate-hit' : '')\n      } ${className}`}\n      style={{ imageRendering: 'auto' }}
+      className={svgClasses}
+      style={{ imageRendering: 'auto' }}
     >
-      {/* Element aura at feet — healer uses bright gold/white aura */}
       {!isDead && <ElementAura colors={classType === 'healer' ? HEALER_AURA_COLORS as any : colors} size={size} />}
 
       {/* Character — healer always gets gold/white colors */}
