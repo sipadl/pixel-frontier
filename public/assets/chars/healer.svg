@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Healer robe -->
+  <rect x="10" y="10" width="12" height="14" rx="2" fill="#f7fafc"/>
+  <rect x="11" y="12" width="10" height="8" rx="1" fill="#edf2f7"/>
+  <!-- Cross on chest -->
+  <rect x="14.5" y="13" width="3" height="6" rx="0.5" fill="#e53e3e"/>
+  <rect x="12.5" y="15" width="7" height="2" rx="0.5" fill="#e53e3e"/>
+  <!-- Head -->
+  <rect x="11" y="4" width="10" height="8" rx="3" fill="#f5e9c6"/>
+  <!-- Halo -->
+  <ellipse cx="16" cy="3" rx="5" ry="1.5" fill="none" stroke="#f6e05e" stroke-width="1"/>
+  <!-- Eyes -->
+  <rect x="13" y="7" width="2" height="1" fill="#fff"/>
+  <rect x="17" y="7" width="2" height="1" fill="#fff"/>
+  <!-- Staff -->
+  <rect x="23" y="6" width="1.5" height="18" rx="0.5" fill="#d69e2e"/>
+  <circle cx="23.75" cy="5" r="2" fill="#f6e05e" opacity="0.8"/>
+  <circle cx="23.75" cy="5" r="1" fill="#fff"/>
+  <!-- Legs -->
+  <rect x="12" y="24" width="4" height="5" rx="1" fill="#f7fafc"/>
+  <rect x="18" y="24" width="4" height="5" rx="1" fill="#f7fafc"/>
+  <rect x="11" y="27" width="5" height="3" rx="1" fill="#e2e8f0"/>
+  <rect x="18" y="27" width="5" height="3" rx="1" fill="#e2e8f0"/>
+</svg>

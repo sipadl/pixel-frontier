@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Guardian body — heavy armor -->
+  <rect x="8" y="10" width="16" height="14" rx="2" fill="#744210"/>
+  <rect x="9" y="11" width="14" height="10" rx="1" fill="#975a16"/>
+  <rect x="11" y="12" width="10" height="2" fill="#ecc094" opacity="0.2"/>
+  <!-- Shoulders -->
+  <rect x="6" y="10" width="4" height="4" rx="1" fill="#975a16"/>
+  <rect x="22" y="10" width="4" height="4" rx="1" fill="#975a16"/>
+  <!-- Head -->
+  <rect x="11" y="4" width="10" height="8" rx="3" fill="#ecc094"/>
+  <!-- Heavy helmet -->
+  <rect x="9" y="2" width="14" height="6" rx="2" fill="#744210"/>
+  <rect x="11" y="2" width="10" height="4" rx="1" fill="#975a16"/>
+  <!-- Horns -->
+  <polygon points="9,4 7,1 10,3" fill="#e2e8f0"/>
+  <polygon points="23,4 25,1 22,3" fill="#e2e8f0"/>
+  <!-- Eyes (glowing) -->
+  <rect x="13" y="6" width="2" height="1" fill="#fbd38d"/>
+  <rect x="17" y="6" width="2" height="1" fill="#fbd38d"/>
+  <!-- Big shield -->
+  <rect x="2" y="11" width="7" height="10" rx="1.5" fill="#975a16"/>
+  <rect x="3" y="12" width="5" height="8" fill="#b7791f"/>
+  <line x1="5.5" y1="12" x2="5.5" y2="20" stroke="#d69e2e" stroke-width="0.5"/>
+  <line x1="3" y1="16" x2="8" y2="16" stroke="#d69e2e" stroke-width="0.5"/>
+  <!-- Legs -->
+  <rect x="10" y="24" width="5" height="5" rx="1" fill="#744210"/>
+  <rect x="18" y="24" width="5" height="5" rx="1" fill="#744210"/>
+  <rect x="9" y="27" width="6" height="3" rx="1" fill="#4a3728"/>
+  <rect x="18" y="27" width="6" height="3" rx="1" fill="#4a3728"/>
+</svg>
