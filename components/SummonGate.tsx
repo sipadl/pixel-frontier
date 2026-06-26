@@ -5,11 +5,11 @@ import GachaBorder from '@/components/ui/GachaBorder'
 
 /* ── element → icon/color maps ── */
 const ELEMENT_ICON: Record<string, string> = {
-  fire: '🔥', water: '💧', earth: '🌿', thunder: '⚡', light: '✨', dark: '🌑',
+  fire: '🔥', ice: '❄️', wind: '💨', earth: '🌿', light: '✨', dark: '🌑',
 }
 const ELEMENT_COLOR: Record<string, string> = {
-  fire: 'text-orange-400', water: 'text-cyan-400', earth: 'text-green-400',
-  thunder: 'text-yellow-400', light: 'text-amber-200', dark: 'text-purple-400',
+  fire: 'text-red-400', ice: 'text-blue-300', wind: 'text-emerald-400',
+  earth: 'text-amber-400', light: 'text-yellow-200', dark: 'text-purple-400',
 }
 const RARITY_VARIANT: Record<number, 'gold' | 'crystal' | 'rainbow'> = {
   3: 'gold', 4: 'gold', 5: 'rainbow',
