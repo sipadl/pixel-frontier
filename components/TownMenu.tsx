@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useGameStore, type UnitDef } from '@/store/gameStore'
 import PixelArt, { HERO_DOWN_1, PALETTE_DEFAULT } from '@/components/PixelArt'
+import GachaBorder from '@/components/ui/GachaBorder'
 
 /* ── inline unit data lookup ── */
 import unitsRaw from '@/game/data/units.json'
@@ -63,141 +64,177 @@ export default function TownMenu() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950 relative">
-      {/* ═══════════ HEADER (top ~10%) ═══════════ */}
-      <div className="flex justify-between items-center p-3 bg-slate-900/80 backdrop-blur-sm border-b border-slate-700 shrink-0">
-        {/* Left: Player info */}
-        <div className="flex flex-col gap-0.5">
-          <p className="font-pixel text-[9px] text-yellow-400">★ Lv.{level}</p>
-          <div className="w-20 h-1.5 bg-gray-950 rounded-full overflow-hidden border border-slate-600">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all"
-              style={{ width: `${expPct}%` }}
-            />
-          </div>
-          <p className="font-pixel text-[6px] text-slate-500">{exp}/{expToNext} EXP</p>
-        </div>
+    <div className="h-full flex flex-col bg-gradient-to-b from-slate-900 via-slate-950 to-black relative overflow-hidden">
 
-        {/* Center: Energy Bar */}
-        <div className="flex flex-col items-center gap-0.5 mx-4">
-          <p className="font-pixel text-[7px] text-cyan-300">⚡ ENERGY</p>
-          <div className="w-28 h-3 bg-gray-950 rounded-full overflow-hidden border border-cyan-700">
-            <div
-              className="h-full transition-all duration-300 rounded-full bg-gradient-to-r from-cyan-500 via-cyan-400 to-cyan-300"
-              style={{ width: `${energyPct}%` }}
-            />
-          </div>
-          <p className="font-pixel text-[7px] text-cyan-200">{energy}/{maxEnergy}</p>
-        </div>
-
-        {/* Right: Currency */}
-        <div className="flex flex-col items-end gap-1">
-          <span className="font-pixel text-[8px] bg-yellow-900/50 px-2 py-0.5 rounded border border-yellow-600 text-yellow-300">
-            🪙 {gold.toLocaleString()}
-          </span>
-          <span className="font-pixel text-[8px] bg-purple-900/50 px-2 py-0.5 rounded border border-purple-500 text-purple-300">
-            💎 {gems}
-          </span>
-        </div>
+      {/* ═══ Animated star particles ═══ */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute w-1 h-1 bg-white/30 rounded-full animate-twinkle" style={{ top: '8%', left: '15%', animationDelay: '0s' }} />
+        <div className="absolute w-1.5 h-1.5 bg-white/20 rounded-full animate-twinkle" style={{ top: '12%', right: '22%', animationDelay: '1.2s' }} />
+        <div className="absolute w-0.5 h-0.5 bg-white/40 rounded-full animate-twinkle" style={{ top: '5%', left: '45%', animationDelay: '2.5s' }} />
+        <div className="absolute w-1 h-1 bg-white/25 rounded-full animate-twinkle" style={{ top: '18%', right: '8%', animationDelay: '0.8s' }} />
+        <div className="absolute w-0.5 h-0.5 bg-white/35 rounded-full animate-twinkle" style={{ top: '3%', left: '70%', animationDelay: '1.8s' }} />
       </div>
 
-      {/* ═══════════ CENTER MENU (center ~75%) ═══════════ */}
-      <div className="flex-1 flex flex-col items-center justify-between p-4 overflow-hidden">
-        {/* Village BG */}
-        <div className="absolute inset-0 top-[10%] pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-b from-emerald-900/20 via-slate-900/40 to-slate-950" />
-          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-slate-950 via-slate-900/80 to-transparent" />
-          {/* decorative trees */}
-          <div className="absolute bottom-[28%] left-[8%] text-3xl opacity-30">🌲</div>
-          <div className="absolute bottom-[30%] right-[12%] text-2xl opacity-25">🌳</div>
-          <div className="absolute bottom-[32%] left-[50%] text-2xl opacity-20">🏡</div>
+      {/* ═══════════ PREMIUM HEADER ═══════════ */}
+      <GachaBorder variant="crystal" className="shrink-0 mx-2 mt-2">
+        <div className="flex justify-between items-center px-3 py-2 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95">
+          {/* Left: Player info */}
+          <div className="flex flex-col gap-0.5">
+            <p className="font-pixel text-[9px] text-yellow-400 drop-shadow-[0_0_4px_rgba(250,204,21,0.5)]">★ Lv.{level}</p>
+            <div className="w-20 h-1.5 bg-gray-950 rounded-full overflow-hidden border border-slate-600 shadow-inner">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-green-500 via-emerald-400 to-green-300 transition-all shadow-[0_0_6px_rgba(52,211,153,0.4)]"
+                style={{ width: `${expPct}%` }}
+              />
+            </div>
+            <p className="font-pixel text-[6px] text-slate-400">{exp}/{expToNext} EXP</p>
+          </div>
+
+          {/* Center: Energy */}
+          <div className="flex flex-col items-center gap-0.5 mx-2">
+            <p className="font-pixel text-[7px] text-cyan-300 drop-shadow-[0_0_4px_rgba(6,182,212,0.5)]">⚡ ENERGY</p>
+            <div className="w-24 h-3 bg-gray-950 rounded-full overflow-hidden border border-cyan-700 shadow-inner">
+              <div
+                className="h-full transition-all duration-300 rounded-full bg-gradient-to-r from-cyan-600 via-cyan-400 to-cyan-200 shadow-[0_0_8px_rgba(6,182,212,0.3)]"
+                style={{ width: `${energyPct}%` }}
+              />
+            </div>
+            <p className="font-pixel text-[7px] text-cyan-200">{energy}/{maxEnergy}</p>
+          </div>
+
+          {/* Right: Currency */}
+          <div className="flex flex-col items-end gap-1">
+            <span className="font-pixel text-[8px] bg-gradient-to-r from-yellow-900/60 to-yellow-800/40 px-2 py-0.5 rounded border border-yellow-600/60 text-yellow-300 shadow-[0_0_6px_rgba(234,179,8,0.15)]">
+              🪙 {gold.toLocaleString()}
+            </span>
+            <span className="font-pixel text-[8px] bg-gradient-to-r from-purple-900/60 to-purple-800/40 px-2 py-0.5 rounded border border-purple-500/60 text-purple-300 shadow-[0_0_6px_rgba(168,85,247,0.15)]">
+              💎 {gems}
+            </span>
+          </div>
+        </div>
+      </GachaBorder>
+
+      {/* ═══════════ CENTER ═══════════ */}
+      <div className="flex-1 flex flex-col items-center justify-between p-4 overflow-hidden relative">
+
+        {/* Animated BG gradient */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-b from-emerald-900/15 via-slate-900/40 to-transparent animate-pulse-slow" />
+          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black via-slate-950/80 to-transparent" />
         </div>
 
-        {/* Hero preview */}
-        <div className="relative z-10 flex flex-col items-center mb-4 mt-2">
-          <div className="animate-bob">
-            <PixelArt data={HERO_DOWN_1} palette={PALETTE_DEFAULT} pixelSize={6} />
+        {/* Hero + Title */}
+        <div className="relative z-10 flex flex-col items-center mb-2 mt-1">
+          {/* Hero glow ring */}
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-b from-yellow-400/20 to-transparent blur-xl animate-pulse-slow" style={{ width: 80, height: 80, left: -10, top: -10 }} />
+            <div className="animate-bob">
+              <PixelArt data={HERO_DOWN_1} palette={PALETTE_DEFAULT} pixelSize={6} />
+            </div>
           </div>
-          <h1 className="font-pixel text-lg text-yellow-300 drop-shadow-[0_2px_0_#000] tracking-wider mt-2">
+          <h1 className="font-pixel text-lg text-yellow-300 drop-shadow-[0_2px_0_#000] tracking-wider mt-2 animate-text-glow">
             PIXEL FRONTIER
           </h1>
           <p className="font-pixel text-[7px] text-slate-400 mt-1">⚔️ Squad-Based Pixel RPG ⚔️</p>
         </div>
 
-        {/* Stats row */}
-        <div className="relative z-10 grid grid-cols-3 gap-2 w-full max-w-xs mb-4">
-          <div className="bg-black/50 border border-slate-600 rounded p-2 text-center">
-            <p className="font-pixel text-[6px] text-slate-400">SQUAD</p>
-            <p className="font-pixel text-sm text-green-400">{filledSlots}/6</p>
-          </div>
-          <div className="bg-black/50 border border-slate-600 rounded p-2 text-center">
-            <p className="font-pixel text-[6px] text-slate-400">UNITS</p>
-            <p className="font-pixel text-sm text-blue-400">{totalUnits}</p>
-          </div>
-          <div className="bg-black/50 border border-slate-600 rounded p-2 text-center">
-            <p className="font-pixel text-[6px] text-slate-400">ENERGY</p>
-            <p className="font-pixel text-sm text-cyan-400">{energy}</p>
-          </div>
+        {/* Stats row — glass cards */}
+        <div className="relative z-10 grid grid-cols-3 gap-3 w-full max-w-xs mb-4">
+          {[
+            { label: 'SQUAD', value: `${filledSlots}/6`, color: 'text-green-400', border: 'border-green-600/30', glow: 'rgba(52,211,153,0.1)' },
+            { label: 'UNITS', value: `${totalUnits}`, color: 'text-blue-400', border: 'border-blue-600/30', glow: 'rgba(96,165,250,0.1)' },
+            { label: 'ENERGY', value: `${energy}`, color: 'text-cyan-400', border: 'border-cyan-600/30', glow: 'rgba(6,182,212,0.1)' },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="backdrop-blur-md bg-white/5 rounded-xl p-2.5 text-center border border-white/10 shadow-lg"
+              style={{ boxShadow: `0 0 20px ${stat.glow}, inset 0 1px 0 rgba(255,255,255,0.08)` }}
+            >
+              <p className="font-pixel text-[6px] text-slate-400 mb-0.5">{stat.label}</p>
+              <p className={`font-pixel text-base ${stat.color} drop-shadow-[0_0_6px_${stat.color === 'text-green-400' ? 'rgba(52,211,153,0.4)' : stat.color === 'text-blue-400' ? 'rgba(96,165,250,0.4)' : 'rgba(6,182,212,0.4)'}]`}>
+                {stat.value}
+              </p>
+            </div>
+          ))}
         </div>
 
-        {/* ═══════════ MENU BUTTONS ═══════════ */}
-        <div className="relative z-10 w-full space-y-2">
+        {/* ═══ PREMIUM MENU BUTTONS ═══ */}
+        <div className="relative z-10 w-full max-w-xs space-y-2.5">
           <button
             onClick={() => setScreen('dungeon')}
             disabled={filledSlots === 0}
-            className="w-full font-pixel text-sm py-3 bg-gradient-to-b from-red-600 to-red-800 border-2 border-red-400 rounded-lg text-white shadow-lg shadow-red-500/30 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
+            className="group w-full relative overflow-hidden font-pixel text-sm py-3.5 rounded-xl text-white disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all duration-200"
+            style={{
+              background: 'linear-gradient(135deg, #dc2626, #991b1b, #dc2626)',
+              boxShadow: '0 4px 24px rgba(220,38,38,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
+            }}
           >
-            🗡️ QUEST / DUNGEON
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+            <span className="relative">🗡️ QUEST / DUNGEON</span>
           </button>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2.5">
             <button
               onClick={() => setShowSquad(true)}
-              className="font-pixel text-[10px] py-3 bg-gradient-to-b from-blue-600 to-blue-800 border-2 border-blue-400 rounded-lg text-white shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+              className="group relative overflow-hidden font-pixel text-[10px] py-3 rounded-xl text-white active:scale-95 transition-all duration-200"
+              style={{
+                background: 'linear-gradient(135deg, #2563eb, #1e3a8a, #2563eb)',
+                boxShadow: '0 4px 20px rgba(37,99,235,0.3), inset 0 1px 0 rgba(255,255,255,0.12)',
+              }}
             >
-              🛡️ SQUAD
+              <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+              <span className="relative">🛡️ SQUAD</span>
             </button>
             <button
               onClick={() => setScreen('summon')}
-              className="font-pixel text-[10px] py-3 bg-gradient-to-b from-purple-600 to-purple-800 border-2 border-purple-400 rounded-lg text-white shadow-lg shadow-purple-500/20 active:scale-95 transition-all"
+              className="group relative overflow-hidden font-pixel text-[10px] py-3 rounded-xl text-white active:scale-95 transition-all duration-200"
+              style={{
+                background: 'linear-gradient(135deg, #9333ea, #581c87, #9333ea)',
+                boxShadow: '0 4px 20px rgba(147,51,234,0.3), inset 0 1px 0 rgba(255,255,255,0.12)',
+              }}
             >
-              🎰 SUMMON
+              <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+              <span className="relative">🎰 SUMMON</span>
             </button>
           </div>
 
           <button
             onClick={() => setShowInventory(true)}
-            className="w-full font-pixel text-[10px] py-2.5 bg-gradient-to-b from-amber-700 to-amber-900 border-2 border-amber-500 rounded-lg text-white shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
+            className="group relative overflow-hidden w-full font-pixel text-[10px] py-2.5 rounded-xl text-white active:scale-95 transition-all duration-200"
+            style={{
+              background: 'linear-gradient(135deg, #d97706, #92400e, #d97706)',
+              boxShadow: '0 4px 20px rgba(217,119,6,0.25), inset 0 1px 0 rgba(255,255,255,0.1)',
+            }}
           >
-            📦 INVENTORY
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+            <span className="relative">📦 INVENTORY</span>
           </button>
 
           <button
             onClick={() => refillEnergy()}
             disabled={energy >= maxEnergy}
-            className="w-full font-pixel text-[8px] py-2 bg-gray-800 border border-cyan-700 rounded text-cyan-300 disabled:opacity-40 active:scale-95 transition-all"
+            className="w-full font-pixel text-[8px] py-2 rounded-lg bg-white/5 backdrop-blur-sm border border-cyan-700/40 text-cyan-300 disabled:opacity-40 active:scale-95 transition-all hover:bg-white/10"
           >
             ⚡ REFILL ENERGY
           </button>
         </div>
       </div>
 
-      {/* ═══════════ SQUAD MANAGEMENT OVERLAY ═══════════ */}
+      {/* ═══════════ SQUAD OVERLAY ═══════════ */}
       {showSquad && (
-        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col">
+        <div className="absolute inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col">
           <div className="flex-1 flex flex-col p-4 overflow-hidden">
-            {/* Header */}
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-pixel text-sm text-blue-300">🛡️ SQUAD MANAGEMENT</h2>
+              <h2 className="font-pixel text-sm text-blue-300 drop-shadow-[0_0_8px_rgba(96,165,250,0.3)]">🛡️ SQUAD MANAGEMENT</h2>
               <button
                 onClick={() => { setShowSquad(false); setSelectedUnit(null) }}
-                className="font-pixel text-[8px] px-3 py-1 bg-red-900 border border-red-500 rounded text-red-300 active:scale-95"
+                className="font-pixel text-[8px] px-3 py-1 bg-red-900/60 border border-red-500/50 rounded text-red-300 active:scale-95 backdrop-blur-sm"
               >
                 ✖ CLOSE
               </button>
             </div>
 
-            {/* 6 Squad Slots (2x3 grid) */}
+            {/* 2x3 Squad Slots — glass */}
             <div className="grid grid-cols-3 gap-2 mb-4">
               {currentSquad.map((instId, slotIdx) => {
                 const inst = instId ? squadInstances[instId] : null
@@ -207,26 +244,24 @@ export default function TownMenu() {
                     key={slotIdx}
                     onClick={() => {
                       if (selectedUnit) {
-                        // place selected unit into this slot
                         setSquadSlot(slotIdx, selectedUnit)
                         setSelectedUnit(null)
                       } else if (instId) {
-                        // remove from slot
                         setSquadSlot(slotIdx, null)
                       }
                     }}
-                    className={`aspect-square rounded-lg border-2 flex flex-col items-center justify-center text-center p-1 transition-all active:scale-95 ${
+                    className={`aspect-square rounded-xl backdrop-blur-sm border-2 flex flex-col items-center justify-center text-center p-1 transition-all active:scale-95 ${
                       def
-                        ? `bg-gradient-to-b from-slate-800 to-slate-900 border-${def.element === 'fire' ? 'red' : def.element === 'ice' ? 'cyan' : def.element === 'wind' ? 'teal' : def.element === 'earth' ? 'green' : def.element === 'light' ? 'yellow' : 'purple'}-500`
+                        ? 'bg-white/5 border-white/20 shadow-lg shadow-cyan-900/10'
                         : selectedUnit
-                          ? 'bg-slate-800/60 border-dashed border-cyan-500 animate-pulse'
-                          : 'bg-slate-900/40 border-dashed border-slate-600'
+                          ? 'bg-white/10 border-dashed border-cyan-400/60 animate-pulse'
+                          : 'bg-white/[0.02] border-dashed border-white/10'
                     }`}
                   >
                     {def ? (
                       <>
                         <span className="text-lg">{ELEM_EMOJI[def.element]}</span>
-                        <span className="font-pixel text-[6px] text-white truncate w-full">{def.name}</span>
+                        <span className="font-pixel text-[6px] text-white truncate w-full mt-0.5">{def.name}</span>
                         <span className="font-pixel text-[5px] text-slate-400">★{def.rarity}</span>
                       </>
                     ) : (
@@ -240,14 +275,13 @@ export default function TownMenu() {
               })}
             </div>
 
-            {/* Instruction */}
             {selectedUnit && (
               <p className="font-pixel text-[7px] text-cyan-400 text-center mb-2 animate-pulse">
-                👆 Tap a slot to place unit, or tap unit again to deselect
+                👆 Tap a slot to place unit
               </p>
             )}
 
-            {/* Owned Units List */}
+            {/* Unit grid */}
             <div className="flex-1 overflow-y-auto">
               <p className="font-pixel text-[8px] text-slate-400 mb-2">
                 OWNED UNITS ({ownedInstances.length})
@@ -260,9 +294,9 @@ export default function TownMenu() {
                     <button
                       key={instId}
                       onClick={() => setSelectedUnit(isSelected ? null : instId)}
-                      className={`flex flex-col items-center p-1.5 rounded border transition-all ${
+                      className={`flex flex-col items-center p-1.5 rounded-lg border transition-all backdrop-blur-sm ${
                         isSelected
-                          ? 'border-cyan-400 bg-cyan-900/40 scale-105'
+                          ? 'border-cyan-400 bg-cyan-900/40 scale-105 shadow-lg shadow-cyan-500/20'
                           : inSlot !== -1
                             ? `${RARITY_COLORS[rarity]} opacity-50`
                             : RARITY_COLORS[rarity]
@@ -289,12 +323,12 @@ export default function TownMenu() {
 
       {/* ═══════════ INVENTORY OVERLAY ═══════════ */}
       {showInventory && (
-        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col p-4">
+        <div className="absolute inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col p-4">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="font-pixel text-sm text-amber-300">📦 INVENTORY</h2>
+            <h2 className="font-pixel text-sm text-amber-300 drop-shadow-[0_0_8px_rgba(217,119,6,0.3)]">📦 INVENTORY</h2>
             <button
               onClick={() => setShowInventory(false)}
-              className="font-pixel text-[8px] px-3 py-1 bg-red-900 border border-red-500 rounded text-red-300 active:scale-95"
+              className="font-pixel text-[8px] px-3 py-1 bg-red-900/60 border border-red-500/50 rounded text-red-300 active:scale-95 backdrop-blur-sm"
             >
               ✖ CLOSE
             </button>

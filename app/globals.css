@@ -293,3 +293,22 @@ svg[shape-rendering="crispEdges"] {
 .battle-bg-ice .battle-bg-mid::before { background: #1a2848; }
 .battle-bg-dark .battle-bg-sky { background: linear-gradient(180deg, #050510 0%, #0a0a20 40%, #050515 100%); }
 .battle-bg-dark .battle-bg-mid::before { background: #050515; }
+
+/* ── TownMenu premium animations ── */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+.animate-twinkle { animation: twinkle 3s ease-in-out infinite; }
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+.animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
+
+@keyframes text-glow {
+  0%, 100% { filter: brightness(1) drop-shadow(0 0 4px rgba(250,204,21,0.3)); }
+  50% { filter: brightness(1.2) drop-shadow(0 0 12px rgba(250,204,21,0.6)); }
+}
+.animate-text-glow { animation: text-glow 3s ease-in-out infinite; }
